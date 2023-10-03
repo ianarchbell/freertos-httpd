@@ -11,8 +11,17 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "ff.h"
 
-void httpd_init(void);
+
+
+//Check these definitions where added from the makefile
+#ifndef WIFI_SSID
+#error "WIFI_SSID not defined"
+#endif
+#ifndef WIFI_PASSWORD
+#error "WIFI_PASSWORD not defined"
+#endif
 
 #ifndef RUN_FREERTOS_ON_CORE
 #define RUN_FREERTOS_ON_CORE 0
@@ -25,9 +34,12 @@ void main_task(__unused void *params) {
         printf("failed to initialise\n");
         return;
     }
+
+    printf("Connecting to WiFi SSID: %s \n", WIFI_SSID);
+
     cyw43_arch_enable_sta_mode();
     printf("Connecting to WiFi...\n");
-    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 30000)) {
+    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_MIXED_PSK, 30000)) {
         printf("failed to connect.\n");
         exit(1);
     } else {
@@ -63,6 +75,8 @@ void vLaunch( void) {
 int main( void )
 {
     stdio_init_all();
+    sleep_ms (5000); // wait to access to USB serial
+
 
     /* Configure the hardware ready to run the demo. */
     const char *rtos_name;

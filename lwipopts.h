@@ -7,6 +7,11 @@
 // This example uses a common include to avoid repetition
 #include "lwipopts_examples_common.h"
 
+#define LWIP_HTTPD_CUSTOM_FILES 1
+#define LWIP_HTTPD_DYNAMIC_FILE_READ 1
+#define LWIP_HTTPD_FILE_EXTENSION 1
+#define LWIP_HTTPD_DYNAMIC_HEADERS 1
+
 #if !NO_SYS
 #define TCPIP_THREAD_STACKSIZE 1024
 #define DEFAULT_THREAD_STACKSIZE 1024
