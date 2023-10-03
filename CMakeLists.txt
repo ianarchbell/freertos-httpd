@@ -7,7 +7,7 @@ include(pico_sdk_import.cmake)
 include(FreeRTOS_Kernel_import.cmake)
 
 set(PICO_LWIP_CONTRIB_PATH_INCLUDES /Users/Ian/pico/pico-sdk/lib/lwip/src/include/lwip/apps/)
-# set(PICO_LWIP_CONTRIB_PATH        /Users/Ian/pico/pico-sdk//lib/lwip/src/)
+#set(PICO_LWIP_CONTRIB_PATH        /Users/Ian/pico/pico-sdk/lib/lwip/src/)
 
 message("LWIP app include path: " ${PICO_LWIP_CONTRIB_PATH_INCLUDES})
 message("LWIP http app include path: " ${PICO_LWIP_CONTRIB_PATH})
@@ -40,7 +40,7 @@ if (NOT DEFINED ENV{WIFI_PASSWORD})
 endif()
 
 add_executable(picow_freertos_httpd_nosys
-        picow_freertos_httpd.c fs_ext.c hw_config.c
+        picow_freertos_httpd.c fs_ext.c hw_config.c router.c
         )
 target_compile_definitions(picow_freertos_httpd_nosys PRIVATE
     WIFI_SSID=\"$ENV{WIFI_SSID}\"
@@ -59,12 +59,13 @@ target_link_libraries(picow_freertos_httpd_nosys
         pico_cyw43_arch_lwip_threadsafe_background
         pico_lwip_http
         pico_stdlib
+        hardware_adc
         FreeRTOS-Kernel-Heap4 # FreeRTOS kernel and dynamic heap
         )
 pico_add_extra_outputs(picow_freertos_httpd_nosys)
 
 add_executable(picow_freertos_httpd_sys
-        picow_freertos_httpd.c fs_ext.c hw_config.c
+        picow_freertos_httpd.c fs_ext.c hw_config.c router.c
         )
 target_compile_definitions(picow_freertos_httpd_sys PRIVATE
         WIFI_SSID=\"$ENV{WIFI_SSID}\"
@@ -84,6 +85,7 @@ target_link_libraries(picow_freertos_httpd_sys
         FatFs_SPI
         pico_cyw43_arch_lwip_sys_freertos
         pico_lwip_http
+        hardware_adc
         pico_stdlib
         FreeRTOS-Kernel-Heap4) # FreeRTOS kernel and dynamic heap        
 

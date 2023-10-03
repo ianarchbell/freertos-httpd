@@ -3,17 +3,14 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
+#include "stdlib.h"
 #include "pico/cyw43_arch.h"
-#include "pico/stdlib.h"
 
 #include "lwip/ip4_addr.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
 #include "ff.h"
-
-
 
 //Check these definitions where added from the makefile
 #ifndef WIFI_SSID

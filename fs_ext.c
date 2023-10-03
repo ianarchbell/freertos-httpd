@@ -26,64 +26,100 @@
 #include "hw_config.h"
 
 #include <stdbool.h>
+#include <string.h>
 
 // only mount once
 static bool init = false;
 
-int
-fs_open_custom(struct fs_file *file, const char *name){
+#define FS_FILE_FLAGS_ROUTE             0x80
 
-    if(!init){
-        sd_card_t *pSD = sd_get_by_num(0);
-        FRESULT fr = f_mount(&pSD->fatfs, pSD->pcName, 1);
-        if (FR_OK != fr) 
-            panic("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
-        printf("mounted 0: successfully\n");
-        init = true;   
-    }
+int fs_open_custom(struct fs_file *file, const char *name){
 
-    FIL* sdFile = (FIL*) malloc(sizeof(FIL));
-    if (sdFile == NULL){
-         panic("cannot allocate sdFile\n");
-    }
-    printf("opening custom: %s\n", name);
-    FRESULT fr = f_open(sdFile, name, FA_READ);
-    if (FR_OK != fr && FR_EXIST != fr){
-        free (sdFile);
-        printf("f_open(%s) error: %s (%d)\n", name, FRESULT_str(fr), fr);
-        return 0;
-    }
+    
+    void (*fun_ptr)(char*);
 
-    file->data = NULL;
-    file->len = f_size(sdFile);
-    file->index = 0;
-    file->flags |= FS_FILE_FLAGS_CUSTOM;
-    file->pextension = sdFile;
+    fun_ptr = (void (*)(char *))isRoute(name);
+
+    if(!fun_ptr)
+    {
+
+        if(!init){
+            sd_card_t *pSD = sd_get_by_num(0);
+            FRESULT fr = f_mount(&pSD->fatfs, pSD->pcName, 1);
+            if (FR_OK != fr) 
+                panic("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
+            printf("mounted 0: successfully\n");
+            init = true;   
+        }
+
+        FIL* sdFile = (FIL*) malloc(sizeof(FIL));
+        if (sdFile == NULL){
+            panic("cannot allocate sdFile\n");
+        }
+        printf("opening custom: %s\n", name);
+        FRESULT fr = f_open(sdFile, name, FA_READ);
+        if (FR_OK != fr && FR_EXIST != fr){
+            free (sdFile);
+            printf("f_open(%s) error: %s (%d)\n", name, FRESULT_str(fr), fr);
+            return 0;
+        }
+    
+
+        file->data = NULL;
+        file->len = f_size(sdFile);
+        file->index = 0;
+        file->flags |= FS_FILE_FLAGS_CUSTOM;
+        file->pextension = sdFile;
+    }
+    else{ // is a route
+        // flag as custom and a route
+        file->data = NULL;
+        file->index = 0;
+        file->flags |= FS_FILE_FLAGS_CUSTOM;
+        file->flags |= FS_FILE_FLAGS_ROUTE; // not used in fs.c
+        file->pextension = fun_ptr; // store the handler for read
+        file->len = 45; // hard coded for test
+        printf("open: %s is a route\n", name);
+    }
     return 1;
 }
 
 int fs_read_custom(struct fs_file *file, char *buffer, int count){
-    printf("reading custom\n");
-    if (file->index < file->len){
-        FIL* sdFile = file->pextension;
-        if (sdFile == NULL)
-            panic("custom read error no SD file pointer\n");
-        UINT br;
-        f_read(sdFile, buffer, count, &br);
+    
+    if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
+        printf("reading custom\n");
+        if (file->index < file->len){
+            FIL* sdFile = file->pextension;
+            if (sdFile == NULL)
+                panic("custom read error no SD file pointer\n");
+            UINT br;
+            f_read(sdFile, buffer, count, &br);
+            file->index += br;
+            return br;
+        }
+    }
+    else{
+        void (*fun_ptr)(char*);
+        fun_ptr = file->pextension;
+        if (fun_ptr){
+            printf("calling route handler\n");
+            route(fun_ptr, buffer, count);
+        }
+        printf("custom read route, buffer %s\n", buffer);
+        UINT br = strlen(buffer);
+        printf("bytes read: %i\n", br);
         file->index += br;
         return br;
     }
-    else{
-        return FS_READ_EOF;
-    }
 };
 
-void
-fs_close_custom(struct fs_file *file){
-    if (file->pextension){
-        FIL* sdFile = file->pextension;
+void fs_close_custom(struct fs_file *file){
+    printf("in close\n");
+    if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
         f_close(file->pextension);
-        free(sdFile);
+    }
+    else{
+        file->pextension = 0;
     }
     printf("closed custom file\n");
 }    
