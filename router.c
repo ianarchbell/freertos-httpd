@@ -39,7 +39,7 @@ void returnTemperature(char* buffer, int count){
 
     if (buffer){
         // Output JSON very simply
-        sprintf(buffer, "{\"temperature\": %.02f,\"temperature units\": %c}", temperature, TEMPERATURE_UNITS);
+        sprintf(buffer, "{\"temperature\": %.02f,\"temperature units\": \"%c\"}", temperature, TEMPERATURE_UNITS);
     }
 }
 
