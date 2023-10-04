@@ -1,17 +1,109 @@
 
 <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            #tempGauge{
+                width: 100%;
+                border: 20px solid white;
+            }
+        </style>
+        <script src="
+            https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js
+        "></script>
         <script>
-            setInterval(() => {
-                fetch('http://192.168.50.212/temp.json')
-                    .then(res => res.json())
-                    .then(json => {
-                        document.getElementById("temp-tag").innerHTML = json.temperature;
-                }).catch(err => console.error(err));
-            }, 10000);
+            function resize() {
+                var canvas = document.getElementById("tempGauge");
+                // Resize the window, not the pen
+                // Our canvas must cover full height of screen
+                // regardless of the resolution
+                var height = window.innerHeight*.5;  // use 50% of window height to scale
+
+                // So we need to calculate the proper scaled width
+                // that should work well with every resolution
+                var ratio = canvas.width / canvas.height;
+                var width = height * ratio;
+
+                canvas.style.width = width + 'px';
+                canvas.style.height = height + 'px';
+            }
+            window.addEventListener('resize', resize, false);
+
+            let temperature;
+            function setup() {
+                const getTemperature = () => {
+                    fetch('http://192.168.50.212/temp.json')
+                        .then(res => res.json())
+                        .then(json => {
+                            temperature = json.temperature;
+                    }).catch(err => console.error(err));
+                    var gauge = document.gauges.get('tempGauge');
+                    gauge.value = temperature;
+                };
+                setInterval(getTemperature, 5000);
+            };
+            function drawGauge(){
+                var gauge = new RadialGauge({
+                    renderTo: 'tempGauge',
+                    width: 300,
+                    height: 300,
+                    units: "F",
+                    title: "Temperature",
+                    minValue: 0,
+                    maxValue: 150,
+                    majorTicks: [
+                        0,10,20,30,40,50,60,70,80,90,100,110, 120, 130, 140, 150],
+                    minorTicks: 5,
+                    strokeTicks: true,
+                    highlights: [
+                        {
+                            "from": 0,
+                            "to": 100,
+                            "color": "rgba(0,0, 255, .3)"
+                        },
+                        {
+                            "from": 100,
+                            "to": 150,
+                            "color": "rgba(255, 0, 0, .3)"
+                        }
+                    ],
+                    ticksAngle: 225,
+                    startAngle: 67.5,
+                    colorMajorTicks: "#ddd",
+                    colorMinorTicks: "#ddd",
+                    colorTitle: "#eee",
+                    colorUnits: "#ccc",
+                    colorNumbers: "#eee",
+                    colorPlate: "#222",
+                    borderShadowWidth: 0,
+                    borders: true,
+                    needleType: "arrow",
+                    needleWidth: 2,
+                    needleCircleSize: 7,
+                    needleCircleOuter: true,
+                    needleCircleInner: false,
+                    animationDuration: 1500,
+                    animationRule: "linear",
+                    colorBorderOuter: "#333",
+                    colorBorderOuterEnd: "#111",
+                    colorBorderMiddle: "#222",
+                    colorBorderMiddleEnd: "#111",
+                    colorBorderInner: "#111",
+                    colorBorderInnerEnd: "#333",
+                    colorNeedleShadowDown: "#333",
+                    colorNeedleCircleOuter: "#333",
+                    colorNeedleCircleOuterEnd: "#111",
+                    colorNeedleCircleInner: "#111",
+                    colorNeedleCircleInnerEnd: "#222",
+                    valueBoxBorderRadius: 0,
+                    colorValueBoxRect: "#222",
+                    colorValueBoxRectEnd: "#333"
+                }).draw();
+            }
         </script>
     </head>
-    <body>
-        <p>Core Pico temperature: </p><span id="temp-tag"></span>
+    <body onLoad="drawGauge();setup();resize()">        
+        <h1>Core Pico Temperature</h1>
+        <canvas id="tempGauge"></canvas>
     </body>
 </html>

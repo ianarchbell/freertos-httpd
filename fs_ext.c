@@ -33,6 +33,8 @@ static bool init = false;
 
 #define FS_FILE_FLAGS_ROUTE             0x80
 
+#define MAX_ROUTE_LEN 1024
+
 int fs_open_custom(struct fs_file *file, const char *name){
 
     
@@ -78,7 +80,7 @@ int fs_open_custom(struct fs_file *file, const char *name){
         file->flags |= FS_FILE_FLAGS_CUSTOM;
         file->flags |= FS_FILE_FLAGS_ROUTE; // not used in fs.c
         file->pextension = fun_ptr; // store the handler for read
-        file->len = 45; // hard coded for test
+        file->len = MAX_ROUTE_LEN; // max len
         printf("open: %s is a route\n", name);
     }
     return 1;
@@ -108,6 +110,7 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
         printf("custom read route, buffer %s\n", buffer);
         UINT br = strlen(buffer);
         printf("bytes read: %i\n", br);
+        file->len = br;
         file->index += br;
         return br;
     }
