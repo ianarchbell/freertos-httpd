@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-#include "stdlib.h"
+#include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 
 #include "lwip/ip4_addr.h"
@@ -11,6 +11,11 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "ff.h"
+
+#include "picow_ntp_client.h"
+
+#include "pico/util/datetime.h"
+#include "hardware/rtc.h"
 
 //Check these definitions where added from the makefile
 #ifndef WIFI_SSID
@@ -26,7 +31,46 @@
 
 #define TEST_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
 
+void setRTC(NTP_T* npt_t, int status, time_t *result){
+    printf("ntp callback received\n");
+    if (status == 0 && result) {
+        struct tm *utc = gmtime(result);
+        printf("got ntp response: %02d/%02d/%04d %02d:%02d:%02d\n", utc->tm_mday, utc->tm_mon + 1, utc->tm_year + 1900,
+                utc->tm_hour, utc->tm_min, utc->tm_sec);
+
+        // Start on Friday 5th of June 2020 15:45:00
+        datetime_t t = {
+                .year  = utc->tm_year + 1900,
+                .month = utc->tm_mon + 1,
+                .day   = utc->tm_mday,
+                .dotw  = utc->tm_wday, // 0 is Sunday, so 5 is Friday
+                .hour  = utc->tm_hour,
+                .min   = utc->tm_min,
+                .sec   = utc->tm_sec
+        };
+
+        // Start the RTC
+        rtc_init();
+        rtc_set_datetime(&t);
+
+        // clk_sys is >2000x faster than clk_rtc, so datetime is not updated immediately when rtc_get_datetime() is called.
+        // tbe delay is up to 3 RTC clock cycles (which is 64us with the default clock settings)
+        sleep_us(64);
+    }
+}
+
+void print_date(){
+    datetime_t t;
+    char datetime_buf[256];
+    char *datetime_str = &datetime_buf[0];
+    rtc_get_datetime(&t);
+    datetime_to_str(datetime_str, sizeof(datetime_buf), &t);
+    printf("\r%s      ", datetime_str);
+}
+
 void main_task(__unused void *params) {
+    
+
     if (cyw43_arch_init()) {
         printf("failed to initialise\n");
         return;
@@ -44,15 +88,21 @@ void main_task(__unused void *params) {
     }
 
     printf("\nReady, running httpd at %s\n", ip4addr_ntoa(netif_ip4_addr(netif_list)));
+
+    getNTPtime(&setRTC);
+
     httpd_init();
 
     while(true) {
         // not much to do as LED is in another task, and we're using RAW (callback) lwIP API
-        vTaskDelay(100);
+        vTaskDelay(1000);
     }
+    print_date();
 
     cyw43_arch_deinit();
 }
+
+
 
 void vLaunch( void) {
     TaskHandle_t task;

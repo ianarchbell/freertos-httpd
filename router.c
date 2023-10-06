@@ -3,12 +3,7 @@
 
 #include "hardware/adc.h"
 
-typedef struct NameFunction_struct
-{
-    const char* routeName;
-    void (*routeFunction)(void*, char*, int);
-}
-NameFunction;
+#include "router.h"
 
 /* Choose 'C' for Celsius or 'F' for Fahrenheit. */
 #define TEMPERATURE_UNITS 'F'
@@ -103,7 +98,7 @@ char* getGPIOvalue(NameFunction* ptr){
 void returnGPIO(NameFunction* ptr, char* buffer, int count){
     
     char* gpio_pin = getGPIO(ptr);
-    int gpio_value = gpio_get(gpio_pin);
+    int gpio_value = (int)gpio_get(gpio_pin);
 
     if (buffer){
         // Output JSON very simply
@@ -115,7 +110,7 @@ void setGPIO(NameFunction* ptr, char* buffer, int count){
     printf("in setGPIO\n");
     int gpio_pin = strtol(getGPIO(ptr), NULL, 10);
     printf("gpio pin: %i\n",gpio_pin);
-    char* gpio_value = strtol(getGPIOvalue(ptr), NULL, 10);
+    int gpio_value = strtol(getGPIOvalue(ptr), NULL, 10);
     printf("gpio value: %i\n", gpio_value);
     gpio_init(gpio_pin);
     gpio_set_dir(gpio_pin, GPIO_OUT);
@@ -128,18 +123,19 @@ void setGPIO(NameFunction* ptr, char* buffer, int count){
 
 NameFunction routes[] =
 { 
-    { "/temp.json", *returnTemperature },
-    { "/temperature.json", *returnTemperature },
-    { "/led.json", *returnLED },
-    { "/led/1.json", *setLEDon },
-    { "/led/0.json", *setLEDoff },
-    { "/gpio/18/get.json", *returnGPIO },
-    { "/gpio/18/1/set.json", *setGPIO },
-    { "/gpio/18/0/set.json", *setGPIO },
+    { "/temp.json", (void*) *returnTemperature },
+    { "/temperature.json", (void*) *returnTemperature },
+    { "/led.json", (void*) *returnLED },
+    { "/led/1.json", (void*) *setLEDon },
+    { "/led/0.json", (void*) *setLEDoff },
+    { "/gpio/18/get.json", (void*) *returnGPIO },
+    { "/gpio/18/1/set.json", (void*) *setGPIO },
+    { "/gpio/18/0/set.json", (void*) *setGPIO },
 };
 
 
 NameFunction* isRoute(const char* name){
+
     printf("routing : %s\n", name);
     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
     {
@@ -151,7 +147,8 @@ NameFunction* isRoute(const char* name){
 }
 
 void route(NameFunction* ptr, char* buffer, int count){
-    if (buffer){        
+    if (buffer){  
+        print_date();      
         printf("routing with a function pointer, max length: %i\n", count);
         ptr->routeFunction(ptr, buffer, count);
         printf("after routeFunction\n");

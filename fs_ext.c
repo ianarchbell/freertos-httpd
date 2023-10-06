@@ -24,6 +24,7 @@
 
 #include "fs.h"
 #include "hw_config.h"
+#include "router.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -37,7 +38,6 @@ static bool init = false;
 
 int fs_open_custom(struct fs_file *file, const char *name){
 
-    
     void (*fun_ptr)(char*);
 
     fun_ptr = (void (*)(char *))isRoute(name);
@@ -88,32 +88,30 @@ int fs_open_custom(struct fs_file *file, const char *name){
 
 int fs_read_custom(struct fs_file *file, char *buffer, int count){
     
+    UINT br = 0;
     if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
         printf("reading custom\n");
         if (file->index < file->len){
             FIL* sdFile = file->pextension;
             if (sdFile == NULL)
                 panic("custom read error no SD file pointer\n");
-            UINT br;
             f_read(sdFile, buffer, count, &br);
             file->index += br;
-            return br;
         }
     }
     else{
-        void (*fun_ptr)(char*);
-        fun_ptr = file->pextension;
+        NameFunction* fun_ptr = file->pextension;
         if (fun_ptr){
             printf("calling route handler\n");
             route(fun_ptr, buffer, count);
         }
         printf("custom read route, buffer %s\n", buffer);
-        UINT br = strlen(buffer);
+        br = strlen(buffer);
         printf("bytes read: %i\n", br);
         file->len = br;
         file->index += br;
-        return br;
     }
+    return br;
 };
 
 void fs_close_custom(struct fs_file *file){

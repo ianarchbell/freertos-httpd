@@ -5,21 +5,64 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
         <style>
             #tempGauge{
-                width: 100%;
+                width: 30%;
                 border: 20px solid white;
             }
-            
+            #graph-container {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            .features {
+                display: grid;
+                grid-template-columns: 200px auto  min-content;
+                grid-template-rows: 1fr auto;
+                gap: 10px;
+            }
+
+            .c1 {
+                grid-column: auto / span 12;
+            }
+
+            @media screen and (min-width:560px) {}
+
+            @media screen and (min-width:737px) {
+                .c1-2-md {
+                    grid-column: auto / span 6;
+                }
+                .c1-md {
+                    grid-column: auto / span 12;
+                }
+            }
+
+            @media screen and (min-width: 1102px) {
+                .c1-3-lg {
+                    grid-column: auto / span 4;
+                }
+            }
+
+            .features>div:first-child {
+                /* background-color: #0a79b3; */
+            }
+
+            .features>div:nth-child(2) {
+                /* background-color: #00FF00; */
+            }
+
+            .features>div:last-child {
+                /* background-color: #7D572B; */
+            }
         </style>
-        <script src="
-            https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js
-        "></script>
+        <script src="https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js"></script>
+        <script src="https://cdn.anychart.com/releases/8.11.0/js/anychart-base.min.js"></script>
         <script>
             function resize() {
                 var canvas = document.getElementById("tempGauge");
                 // Resize the window, not the pen
                 // Our canvas must cover full height of screen
                 // regardless of the resolution
-                var height = window.innerHeight*.5;  // use 50% of window height to scale
+                var height = window.innerHeight*.3;  // use 30% of window height to scale
 
                 // So we need to calculate the proper scaled width
                 // that should work well with every resolution
@@ -37,6 +80,7 @@
                     fetch('http://192.168.50.212/temp.json')
                         .then(res => res.json())
                         .then(json => {
+                            console.log(json);
                             temperature = json.temperature;
                     }).catch(err => console.error(err));
                     var gauge = document.gauges.get('tempGauge');
@@ -47,8 +91,8 @@
             function drawGauge(){
                 var gauge = new RadialGauge({
                     renderTo: 'tempGauge',
-                    width: 300,
-                    height: 300,
+                    width: "200",
+                    height: "200",
                     units: "F",
                     title: "Temperature",
                     minValue: 0,
@@ -102,15 +146,100 @@
                     colorValueBoxRectEnd: "#333"
                 }).draw();
             }
+            function setLEDstate(){
+                var checkbox = document.getElementById('LED');
+                fetch('http://192.168.50.212/led.json')
+                    .then(res => res.json())
+                    .then(json => {
+                        console.log(json);
+                        console.log(json.led);
+                        checkbox.checked = json.led;
+                }).catch(err => console.error(err));
+            }
+            function checkState(){
+                var checkbox = document.getElementById('LED');
+                if (checkbox.checked == true){
+                    fetch('http://192.168.50.212/led/1.json')
+                    .catch(err => console.error(err));
+                }
+                else{
+                    fetch('http://192.168.50.212/led/0.json')
+                    .catch(err => console.error(err));
+                }
+            }
+            function drawChart() {
+  
+                // add data
+                var data = [
+                    ["2003-10-1", 1, 0, 0],
+                    ["2004", 4, 0, 0],
+                    ["2005", 6, 0, 0],
+                    ["2006", 9, 1, 0],
+                    ["2007", 12, 2, 0],
+                    ["2008", 13, 5, 1],
+                    ["2009", 15, 6, 1],
+                    ["2010", 16, 9, 1],
+                    ["2011", 16, 10, 4],
+                    ["2012", 17, 11, 5],
+                    ["2013", 17, 13, 6],
+                    ["2014", 17, 14, 7],
+                    ["2015", 17, 14, 10],
+                    ["2016", 17, 14, 12],
+                    ["2017", 19, 16, 12],
+                    ["2018", 20, 17, 14],
+                    ["2019", 20, 19, 16],
+                    ["2020", 20, 20, 17],
+                    ["2021", 20, 20, 20],
+                    ["2022", 20, 22, 20]
+                ];
+                
+                // create a data set
+                var dataSet = anychart.data.set(data);
+
+                // map the data for all series
+                var firstSeriesData = dataSet.mapAs({x: 0, value: 1});
+
+                // create a line chart
+                var chart = anychart.line();
+
+                // create the series and name them
+                var firstSeries = chart.line(firstSeriesData);
+                firstSeries.name("Pico Core Temperature");
+
+                // add a legend
+                chart.legend().enabled(true);
+                
+                // add a title
+                chart.title("Temperature History");
+                
+                // specify where to display the chart
+                chart.container("graph-container");
+                
+                // draw the resulting chart
+                chart.draw();
+            
+            };
         </script>
     </head>
-    <body onLoad="drawGauge();setup();resize()">        
-        <h1>Core Pico Temperature</h1>
-        <canvas id="tempGauge"></canvas>
-        <label for="terms">
-            <input type="checkbox" role="switch" id="terms" name="terms" />
-            I agree to the
-            <a href="#" onclick="event.preventDefault()">Privacy Policy</a>
-          </label>
+    <body onLoad="drawGauge();setup();setLEDstate();resize();drawChart()"> 
+        <div class="row">
+            <h1>Raspberry Pi Pico</h1>
+        </div>
+        <div class="features ">
+            <div class="f-card c1 c1-2-md c1-3-lg">
+                <h2>Core Pico Temperature</h2>
+                <canvas id="tempGauge"></canvas>
+            </div>
+            <div class="f-card c1 c1-2-md c1-3-lg">
+                <h2>Temperature History</h2>
+                <div id="graph-container"></div>
+            </div>
+            <div class="f-card c1 c1-md c1-3-lg">
+                <h2>Controls</h2>
+                <label onClick>
+                    <input type="checkbox" id="LED" name="LED" onclick="checkState()" />
+                    LED
+                </label>
+            </div>        
     </body>
 </html>
