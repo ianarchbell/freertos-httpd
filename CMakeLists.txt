@@ -40,7 +40,7 @@ if (NOT DEFINED ENV{WIFI_PASSWORD})
 endif()
 
 add_executable(picow_freertos_httpd_nosys
-        picow_freertos_httpd.c fs_ext.c hw_config.c router.c picow_ntp_client
+        picow_freertos_httpd.c fs_ext.c hw_config.c router.c picow_ntp_client.c data_logger.c
         )
 target_compile_definitions(picow_freertos_httpd_nosys PRIVATE
     WIFI_SSID=\"$ENV{WIFI_SSID}\"
@@ -63,7 +63,7 @@ target_link_libraries(picow_freertos_httpd_nosys
 pico_add_extra_outputs(picow_freertos_httpd_nosys)
 
 add_executable(picow_freertos_httpd_sys
-        picow_freertos_httpd.c fs_ext.c hw_config.c router.c picow_ntp_client
+        picow_freertos_httpd.c fs_ext.c hw_config.c router.c picow_ntp_client.c data_logger.c
         )
 target_compile_definitions(picow_freertos_httpd_sys PRIVATE
         WIFI_SSID=\"$ENV{WIFI_SSID}\"

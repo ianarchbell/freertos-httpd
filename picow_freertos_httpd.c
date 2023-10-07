@@ -93,6 +93,11 @@ void main_task(__unused void *params) {
 
     httpd_init();
 
+    bool rc = logger_init();
+    {
+        printf("data logger initialized: %i\n", rc);
+    }
+
     while(true) {
         // not much to do as LED is in another task, and we're using RAW (callback) lwIP API
         vTaskDelay(1000);
@@ -101,8 +106,6 @@ void main_task(__unused void *params) {
 
     cyw43_arch_deinit();
 }
-
-
 
 void vLaunch( void) {
     TaskHandle_t task;

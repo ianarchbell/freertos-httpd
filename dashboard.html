@@ -16,29 +16,34 @@
             }
             .features {
                 display: grid;
-                grid-template-columns: 200px auto  min-content;
-                grid-template-rows: 1fr auto;
+                /* this is the same as grid-template-columns: 1fr 1fr 1fr 1fr; */
+                grid-template-columns: repeat(4, 1fr);
+                /* this is the same as grid-template-rows: 375px 375px; */
+                grid-template-rows: repeat(2, 450px);
                 gap: 10px;
+            }
+            h2{
+                text-align:center;
             }
 
             .c1 {
-                grid-column: auto / span 12;
+                grid-column: auto / span 3;
             }
 
             @media screen and (min-width:560px) {}
 
             @media screen and (min-width:737px) {
                 .c1-2-md {
-                    grid-column: auto / span 6;
+                    grid-column: auto / span 2;
                 }
                 .c1-md {
-                    grid-column: auto / span 12;
+                    grid-column: auto / span 1;
                 }
             }
 
             @media screen and (min-width: 1102px) {
                 .c1-3-lg {
-                    grid-column: auto / span 4;
+                    grid-column: auto / span 2;
                 }
             }
 
@@ -73,18 +78,24 @@
                 canvas.style.height = height + 'px';
             }
             window.addEventListener('resize', resize, false);
-
-            let temperature;
-            function setup() {
+            function getTemperature() {
+                fetch('http://192.168.50.212/temp.json')
+                    .then(res => res.json())
+                    .then(json => {
+                        console.log(json);
+                        var gauge = document.gauges.get('tempGauge');
+                        gauge.value = json.temperature;
+                }).catch(err => console.error(err));
+            };
+            function setTimeInterval() {
                 const getTemperature = () => {
                     fetch('http://192.168.50.212/temp.json')
                         .then(res => res.json())
                         .then(json => {
                             console.log(json);
-                            temperature = json.temperature;
-                    }).catch(err => console.error(err));
-                    var gauge = document.gauges.get('tempGauge');
-                    gauge.value = temperature;
+                            var gauge = document.gauges.get('tempGauge');
+                            gauge.value = json.temperature;
+                    }).catch(err => console.error(err));                    
                 };
                 setInterval(getTemperature, 5000);
             };
@@ -204,13 +215,13 @@
 
                 // create the series and name them
                 var firstSeries = chart.line(firstSeriesData);
-                firstSeries.name("Pico Core Temperature");
+                firstSeries.name("Ian's Pico");
 
                 // add a legend
                 chart.legend().enabled(true);
                 
                 // add a title
-                chart.title("Temperature History");
+                chart.title("Core Temperature");
                 
                 // specify where to display the chart
                 chart.container("graph-container");
@@ -219,27 +230,39 @@
                 chart.draw();
             
             };
+            function onBodyLoad(){
+                drawGauge();
+                setTimeInterval();
+                getTemperature();
+                setLEDstate();
+                resize();
+                drawChart()
+            }
         </script>
     </head>
-    <body onLoad="drawGauge();setup();setLEDstate();resize();drawChart()"> 
-        <div class="row">
-            <h1>Raspberry Pi Pico</h1>
-        </div>
+    <body onLoad="onBodyLoad()"> 
+
+        <h2>Raspberry Pi Pico</h1>
+
         <div class="features ">
-            <div class="f-card c1 c1-2-md c1-3-lg">
-                <h2>Core Pico Temperature</h2>
+            <div class="f-card c1 c1-md c1-lg">
+                <h3>Core Pico Temperature</h2>
                 <canvas id="tempGauge"></canvas>
             </div>
-            <div class="f-card c1 c1-2-md c1-3-lg">
-                <h2>Temperature History</h2>
+            <div class="f-card c1 c1-md c1-3-lg">
+                <h3>Temperature History</h2>
                 <div id="graph-container"></div>
             </div>
-            <div class="f-card c1 c1-md c1-3-lg">
-                <h2>Controls</h2>
+            <div class="f-card c1 c1-md c-1-lg">
+                <h3>Controls</h2>
                 <label onClick>
                     <input type="checkbox" id="LED" name="LED" onclick="checkState()" />
                     LED
                 </label>
-            </div>        
+            </div>  
+        </div>
+
+      
+
     </body>
 </html>
