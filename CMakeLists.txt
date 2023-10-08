@@ -53,12 +53,11 @@ target_compile_definitions(picow_freertos_httpd_nosys PRIVATE
     )
     
 target_include_directories(picow_freertos_httpd_nosys PRIVATE
-        
- #       ${PICO_LWIP_CONTRIB_PATH}/apps/httpd
         ${FAT_PATH}/FreeRTOS+FAT+CLI/Lab-Project-FreeRTOS-FAT/include
         ${FAT_PATH}/FreeRTOS+FAT+CLI/portable/RP2040
         ${FAT_PATH}/FreeRTOS+FAT+CLI/include
         ${PICO_LWIP_CONTRIB_PATH_INCLUDES}
+        ${CMAKE_CURRENT_LIST_DIR} 
          )
 target_link_libraries(picow_freertos_httpd_nosys
         pico_stdlib
@@ -84,16 +83,9 @@ target_include_directories(picow_freertos_httpd_sys PRIVATE
         ${FAT_PATH}/FreeRTOS+FAT+CLI/Lab-Project-FreeRTOS-FAT/include
         ${FAT_PATH}/FreeRTOS+FAT+CLI/portable/RP2040
         ${FAT_PATH}/FreeRTOS+FAT+CLI/include
-#        ${PICO_LWIP_CONTRIB_PATH}/apps/httpd
-#        ${PICO_LWIP_APP_INCLUDE_PATH}
-#        ${FREERTOS_KERNEL_PATH}/include
-#        ${FREERTOS_KERNEL_PATH}/portable/GCC/ARM_CM0
-        ${FATPATH}/Lab-Project-FreeRTOS-FAT/include
-        ${FATPATH}/FreeRTOS+FAT+CLI/portable/RP2040
-        ${FATPATH}/FreeRTOS+FAT+CLI/include
-        /Users/Ian/pico/pico-sdk/lib/lwip/src/include/lwip/apps
-        ${CMAKE_CURRENT_LIST_DIR}
-        )
+        ${PICO_LWIP_CONTRIB_PATH_INCLUDES}
+        ${CMAKE_CURRENT_LIST_DIR} 
+         )       
 target_link_libraries(picow_freertos_httpd_sys        
         pico_stdlib
         pico_cyw43_arch_lwip_sys_freertos
