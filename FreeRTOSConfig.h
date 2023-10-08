@@ -40,6 +40,13 @@
  * See http://www.freertos.org/a00110.html
  *----------------------------------------------------------*/
 
+#include "my_debug.h"
+
+#ifndef portINLINE
+#  define portINLINE __inline
+#endif
+
+
 /* Scheduler Related */
 #define configUSE_PREEMPTION                    1
 #define configUSE_TICKLESS_IDLE                 0

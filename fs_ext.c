@@ -19,15 +19,20 @@
 *    In the close we close the sd file and free the allocated struct
 *    
 */
-#include "ff.h"
-#include "f_util.h"
+#include "ff_headers.h"
+//#include "f_util.h"
 
 #include "fs.h"
+
+#include "ff_headers.h"
+
 #include "hw_config.h"
 #include "router.h"
 
 #include <stdbool.h>
 #include <string.h>
+
+#include "lwip/apps/httpd.h"
 
 // only mount once
 static bool init = false;
@@ -36,42 +41,48 @@ static bool init = false;
 
 #define MAX_ROUTE_LEN 1024
 
+#define DEVICENAME "sd0"
+#define MOUNTPOINT "/sd0"
+
 int fs_open_custom(struct fs_file *file, const char *name){
 
     void (*fun_ptr)(char*);
 
+    // check if it is a route first, if not it must be a custom file
     fun_ptr = (void (*)(char *))isRoute(name);
 
     if(!fun_ptr)
     {
-
         if(!init){
-            sd_card_t *pSD = sd_get_by_num(0);
-            FRESULT fr = f_mount(&pSD->fatfs, pSD->pcName, 1);
-            if (FR_OK != fr) 
-                panic("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
-            printf("mounted 0: successfully\n");
+            // mount sd card
+
+            FF_Disk_t *pxDisk = NULL;
+
+            if (!mount(&pxDisk, DEVICENAME, MOUNTPOINT)){
+                panic("failed to mount card\n");
+                return 0;
+            };
+            printf("mounted %s: successfully\n", DEVICENAME);
             init = true;   
         }
 
-        FIL* sdFile = (FIL*) malloc(sizeof(FIL));
-        if (sdFile == NULL){
-            panic("cannot allocate sdFile\n");
-        }
         printf("opening custom: %s\n", name);
-        FRESULT fr = f_open(sdFile, name, FA_READ);
-        if (FR_OK != fr && FR_EXIST != fr){
-            free (sdFile);
-            printf("f_open(%s) error: %s (%d)\n", name, FRESULT_str(fr), fr);
-            return 0;
+        FF_FILE *pxFile = ff_fopen(name, "r");
+        if (pxFile && ff_filelength( *pxFile )) {
+        
+            size_t fsize = ff_filelength( pxFile );
+            
+            if (fsize > 0){
+                // file exists we'll read it
+                file->data = NULL;
+                file->len = fsize;
+                file->index = 0;
+                file->flags |= FS_FILE_FLAGS_CUSTOM;
+                file->pextension = pxFile;
+            }
         }
-    
-
-        file->data = NULL;
-        file->len = f_size(sdFile);
-        file->index = 0;
-        file->flags |= FS_FILE_FLAGS_CUSTOM;
-        file->pextension = sdFile;
+        panic("failed to open file %s\n", name);
+        return 0;
     }
     else{ // is a route
         // flag as custom and a route
@@ -88,14 +99,15 @@ int fs_open_custom(struct fs_file *file, const char *name){
 
 int fs_read_custom(struct fs_file *file, char *buffer, int count){
     
-    UINT br = 0;
+    size_t br = 0;
     if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
         printf("reading custom\n");
         if (file->index < file->len){
-            FIL* sdFile = file->pextension;
-            if (sdFile == NULL)
+
+            FF_FILE *pxFile = file->pextension;
+            if (pxFile == NULL)
                 panic("custom read error no SD file pointer\n");
-            f_read(sdFile, buffer, count, &br);
+            ff_read(pxFile, buffer, 1, count, &br);
             file->index += br;
         }
     }

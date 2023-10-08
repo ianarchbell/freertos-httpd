@@ -7,10 +7,12 @@
 #include "pico/cyw43_arch.h"
 
 #include "lwip/ip4_addr.h"
+#include "lwip/apps/httpd.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
-#include "ff.h"
+
+#include "ff_headers.h"
 
 #include "picow_ntp_client.h"
 

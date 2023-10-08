@@ -1,4 +1,3 @@
-
 /* hw_config.c
 Copyright 2021 Carl John Kugler III
 
@@ -12,92 +11,90 @@ under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR
 CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 */
-
 /*
 
 This file should be tailored to match the hardware design.
 
-See 
-  https://github.com/carlk3/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/tree/main#customizing-for-the-hardware-configuration
-
-There should be one element of the spi[] array for each RP2040 hardware SPI used.
-
-There should be one element of the spi_ifs[] array for each SPI interface object.
-* Each element of spi_ifs[] must point to an spi_t instance with member "spi".
-
-There should be one element of the sdio_ifs[] array for each SDIO interface object.
+There should be one element of the spi[] array for each hardware SPI used.
 
 There should be one element of the sd_cards[] array for each SD card slot.
-* Each element of sd_cards[] must point to its interface with spi_if_p or sdio_if_p.
-* The name (pcName) should correspond to the FatFs "logical drive" identifier.
-  (See http://elm-chan.org/fsw/ff/doc/filename.html#vol)
-  In general, this should correspond to the (zero origin) array index.
+The name is arbitrary. The rest of the constants will depend on the type of
+socket, which SPI it is driven by, and how it is wired.
 
 */
 
-/* Hardware configuration for Pico SD Card Development Board
-See https://oshwlab.com/carlk3/rp2040-sd-card-dev
-
-See https://docs.google.com/spreadsheets/d/1BrzLWTyifongf_VQCc2IpJqXWtsrjmG7KnIbSBy-CPU/edit?usp=sharing,
-tab "Monster", for pin assignments assumed in this configuration file.
-*/
-
-#include <assert.h>
+#include <string.h>
 //
 #include "hw_config.h"
 
-/* SDIO Interfaces */
-static sd_sdio_if_t sdio_ifs[] = {
-    {   // sdio_ifs[0]
-        /*
-        Pins CLK_gpio, D1_gpio, D2_gpio, and D3_gpio are at offsets from pin D0_gpio.
-        The offsets are determined by sd_driver\SDIO\rp2040_sdio.pio.
-            CLK_gpio = (D0_gpio + SDIO_CLK_PIN_D0_OFFSET) % 32;
-            As of this writing, SDIO_CLK_PIN_D0_OFFSET is 30,
-              which is -2 in mod32 arithmetic, so:
-            CLK_gpio = D0_gpio -2. 10
-            D1_gpio = D0_gpio + 1; 13 
-            D2_gpio = D0_gpio + 2; 14
-            D3_gpio = D0_gpio + 3; 15
-        */
-        .CMD_gpio = 11,
-        .D0_gpio = 12,
-        .SDIO_PIO = pio0,
-        .DMA_IRQ_num = DMA_IRQ_1,
-        .baud_rate = 15 * 1000 * 1000  // 15 MHz
-    }
-};
+void spi_dma_isr();
 
-/* Hardware Configuration of the SD Card "objects"
-    These correspond to SD card sockets
-*/
+// Hardware Configuration of SPI "objects"
+// Note: multiple SD cards can be driven by one SPI if they use different slave
+// selects.
+static spi_t spis[] = {  // One for each SPI.
+    {
+        .hw_inst = spi1,  // SPI component
+        .miso_gpio = 12,  // GPIO number (not pin number)
+        .mosi_gpio = 11,
+        .sck_gpio = 10,
+        /* The choice of SD card matters! SanDisk runs at the highest speed. PNY
+           can only mangage 5 MHz. Those are all I've tried. */
+        //.baud_rate = 1000 * 1000,
+        .baud_rate = 12500 * 1000,  // The limitation here is SPI slew rate.        
+        //.baud_rate = 6250 * 1000,  // The limitation here is SPI slew rate.
+        //.baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. Has
+        // worked for me with SanDisk.
+
+        // Following attributes are dynamically assigned
+        .dma_isr = spi_dma_isr,
+        .initialized = false,  // initialized flag
+        .owner = 0,            // Owning task, assigned dynamically
+        .mutex = 0             // Guard semaphore, assigned dynamically
+    }};
+
+// Hardware Configuration of the SD Card "objects"
 static sd_card_t sd_cards[] = {  // One for each SD card
-
-    {   // sd_cards[3]: Socket sd3
-        .pcName = "0:",  // Name used to mount device
-        .type = SD_IF_SDIO,
-        .sdio_if_p = &sdio_ifs[0],
-        // SD Card detect:
+    {.pcName = "sd0",            // Name used to mount device
+     .spi = &spis[0],             // Pointer to the SPI driving this card
+        .ss_gpio = 15,             // The SPI slave select GPIO for this SD card
         .use_card_detect = false,
-        // .card_detect_gpio = 9,  
-        // .card_detected_true = 0, // What the GPIO read returns when a card is
-        //                          // present.
-        // .card_detect_use_pull = true,
-        // .card_detect_pull_hi = true
-    }
-};
+        .card_detect_gpio = 0,    // Card detect
+        .card_detected_true = 0, 
+     // Following attributes are dynamically assigned
+     .m_Status = STA_NOINIT,
+     .sectors = 0,
+     .card_type = 0,
+     .mutex = 0,
+     .ff_disk_count = 0,
+     .ff_disks = NULL}
+    };
+
+void spi_dma_isr() { spi_irq_handler(&spis[0]); }
 
 /* ********************************************************************** */
-
 size_t sd_get_num() { return count_of(sd_cards); }
-
 sd_card_t *sd_get_by_num(size_t num) {
-    assert(num < sd_get_num());
-    if (num < sd_get_num()) {
+    if (num <= sd_get_num()) {
         return &sd_cards[num];
     } else {
         return NULL;
     }
 }
-
+sd_card_t *sd_get_by_name(const char *const name) {
+    size_t i;
+    for (i = 0; i < sd_get_num(); ++i) {
+        if (0 == strcmp(sd_cards[i].pcName, name)) return &sd_cards[i];
+    }
+    DBG_PRINTF("%s: unknown name %s\n", __func__, name);
+    return NULL;
+}
+size_t spi_get_num() { return count_of(spis); }
+spi_t *spi_get_by_num(size_t num) {
+    if (num <= sd_get_num()) {
+        return &spis[num];
+    } else {
+        return NULL;
+    }
+}
 /* [] END OF FILE */

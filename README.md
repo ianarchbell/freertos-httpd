@@ -38,4 +38,7 @@ to lwipopts.h:
 You will need to change hw_config.h to configure your SD card to use the no-OS-FATFS-SD-SDIO-SPI-RP-Pico library.  Theis library is specific to the Raspberry Pi Pico but there are many other platforms that ChaN 's FatFS library supports.
 
 
- 
+Notes
+
+1. Modifed Carl's FreeRTOSConfig.h for SMP core affinity
+2. Can't locate "fs.h" header - why?
