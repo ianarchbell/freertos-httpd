@@ -53,10 +53,13 @@ target_compile_definitions(picow_freertos_httpd_nosys PRIVATE
     )
     
 target_include_directories(picow_freertos_httpd_nosys PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR} 
         ${FAT_PATH}/FreeRTOS+FAT+CLI/Lab-Project-FreeRTOS-FAT/include
         ${FAT_PATH}/FreeRTOS+FAT+CLI/portable/RP2040
         ${FAT_PATH}/FreeRTOS+FAT+CLI/include
-        ${PICO_LWIP_CONTRIB_PATH_INCLUDES}
+        ${PICO_LWIP_APP_INCLUDE_PATH}
+        ${FREERTOS_KERNEL_PATH}/include
+        ${FREERTOS_PATH}/portable/GCC/ARM_CM0
         ${CMAKE_CURRENT_LIST_DIR} 
          )
 target_link_libraries(picow_freertos_httpd_nosys
@@ -83,7 +86,9 @@ target_include_directories(picow_freertos_httpd_sys PRIVATE
         ${FAT_PATH}/FreeRTOS+FAT+CLI/Lab-Project-FreeRTOS-FAT/include
         ${FAT_PATH}/FreeRTOS+FAT+CLI/portable/RP2040
         ${FAT_PATH}/FreeRTOS+FAT+CLI/include
-        ${PICO_LWIP_CONTRIB_PATH_INCLUDES}
+        ${PICO_LWIP_APP_INCLUDE_PATH}
+        ${FREERTOS_KERNEL_PATH}/include
+        ${FREERTOS_PATH}/portable/GCC/ARM_CM0
         ${CMAKE_CURRENT_LIST_DIR} 
          )       
 target_link_libraries(picow_freertos_httpd_sys        

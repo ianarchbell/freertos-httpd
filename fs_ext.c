@@ -20,11 +20,12 @@
 *    
 */
 #include "ff_headers.h"
-//#include "f_util.h"
+#include "ff_stdio.h"
 
 #include "fs.h"
 
 #include "ff_headers.h"
+#include "ff_utils.h"
 
 #include "hw_config.h"
 #include "router.h"
@@ -68,7 +69,7 @@ int fs_open_custom(struct fs_file *file, const char *name){
 
         printf("opening custom: %s\n", name);
         FF_FILE *pxFile = ff_fopen(name, "r");
-        if (pxFile && ff_filelength( *pxFile )) {
+        if (pxFile && ff_filelength( pxFile )) {
         
             size_t fsize = ff_filelength( pxFile );
             
@@ -99,7 +100,7 @@ int fs_open_custom(struct fs_file *file, const char *name){
 
 int fs_read_custom(struct fs_file *file, char *buffer, int count){
     
-    size_t br = 0;
+    uint32_t br = 0;
     if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
         printf("reading custom\n");
         if (file->index < file->len){
@@ -107,7 +108,7 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
             FF_FILE *pxFile = file->pextension;
             if (pxFile == NULL)
                 panic("custom read error no SD file pointer\n");
-            ff_read(pxFile, buffer, 1, count, &br);
+            br = FF_Read(pxFile, 1, count, buffer);
             file->index += br;
         }
     }
@@ -129,7 +130,7 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
 void fs_close_custom(struct fs_file *file){
     printf("in close\n");
     if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
-        f_close(file->pextension);
+        FF_Close(file->pextension);
     }
     else{
         file->pextension = 0;
