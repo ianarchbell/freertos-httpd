@@ -130,22 +130,18 @@ void setGPIO(NameFunction* ptr, char* buffer, int count){
 }
 
 // each one more than required for terminating null
-#define DATELEN 11
-#define TIMELEN 9
+#define DATETIMELEN 23
 #define TEMPLEN 6
 #define MAXREADINGS 10
 
 typedef struct Measurement{
-    char date[DATELEN];
-    char time[TIMELEN];
+    char date_time[DATETIMELEN];
     char temperature[TEMPLEN];
 } Measurement;
 
 void getData(char *buff, Measurement* reading){  
     char* ptr = strtok(buff, ",");
-    strncpy(reading->date, ptr, DATELEN);
-    ptr = strtok(NULL, ",");
-    strncpy(reading->time, ptr, TIMELEN);
+    strncpy(reading->date_time, ptr, DATETIMELEN);
     ptr = strtok(NULL, "\n");
     strncpy(reading->temperature, ptr, TEMPLEN);
 }
@@ -187,7 +183,8 @@ void readLog(char* name, char* jsonBuffer, int count){
         int i = 0;
         char* ptr = jsonBuffer;
         sprintf(jsonBuffer, "[");
-        int len=1;
+        int len = 1;
+        int bufferPos = len;
         ff_fgets(buffer, sizeof(buffer), pxFile); // ignore header
         while(ff_fgets(buffer, sizeof(buffer), pxFile)){
             if (i >= MAXREADINGS)
@@ -195,12 +192,13 @@ void readLog(char* name, char* jsonBuffer, int count){
             getData(buffer, &reading);
             memcpy(&readings[i], &reading, sizeof(reading));
             printf("Count: %d\n", count);
-            printf("Reading [%d] : Date: %s, Time: %s, Temperature: %s\n", i, readings[i].date, readings[i].time, readings[i].temperature );            
-            len = snprintf(ptr+len, count-len, "{\"date\": %s, \"time\": %s,\"temperature\": %s, \"temperature units\": \"%c\"}, ", 
-                                            readings[i].date, readings[i].time, readings[i].temperature, 'F');
+            printf("Reading [%d] : Date: %s, Temperature: %s\n", i, readings[i].date_time, readings[i].temperature );            
+            len = snprintf(ptr+bufferPos, count-bufferPos, "{\"date\": %s, \"temperature\": %s, \"temperature units\": \"%c\"}, ", 
+                                            readings[i].date_time, readings[i].temperature, 'F');
+            bufferPos += len;
             i++;
         }
-        sprintf(jsonBuffer+len, "]");
+        sprintf(jsonBuffer+bufferPos-2, "]");
         ff_fclose(pxFile);  
     }
 

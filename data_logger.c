@@ -133,7 +133,7 @@ static void write_log_data(TimerHandle_t taskTimer) {
     // struct tm tmbuf;
     // struct tm *ptm = localtime_r(&timer, &tmbuf);
     //size_t n = strftime(buf, sizeof buf, "%F,%T,", ptm);
-    size_t n = snprintf(buf, sizeof buf, "%04d-%02d-%02d,%02d:%02d:%02d,", t.year, t.month,t.day, t.hour, t.min, t.sec);
+    size_t n = snprintf(buf, sizeof buf, "\"%04d-%02d-%02dT%02d:%02d:%02dZ\",", t.year, t.month,t.day, t.hour, t.min, t.sec);
     //configASSERT(n);
 
     // The temperature sensor is on input 4:
