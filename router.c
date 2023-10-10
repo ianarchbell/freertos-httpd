@@ -1,9 +1,17 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "hardware/adc.h"
 
+#include "ff_headers.h"
+#include "ff_utils.h"
+#include "ff_stdio.h"
+
 #include "router.h"
+
+#define DEVICENAME "sd0"
+#define MOUNTPOINT "/sd0"
 
 /* Choose 'C' for Celsius or 'F' for Fahrenheit. */
 #define TEMPERATURE_UNITS 'F'
@@ -98,7 +106,7 @@ char* getGPIOvalue(NameFunction* ptr){
 void returnGPIO(NameFunction* ptr, char* buffer, int count){
     
     char* gpio_pin = getGPIO(ptr);
-    int gpio_value = (int)gpio_get(gpio_pin);
+    int gpio_value = (int)gpio_get(atoi(gpio_pin));
 
     if (buffer){
         // Output JSON very simply
@@ -121,6 +129,87 @@ void setGPIO(NameFunction* ptr, char* buffer, int count){
     printf("exiting setGPIO\n");
 }
 
+// each one more than required for terminating null
+#define DATELEN 11
+#define TIMELEN 9
+#define TEMPLEN 6
+#define MAXREADINGS 10
+
+typedef struct Measurement{
+    char date[DATELEN];
+    char time[TIMELEN];
+    char temperature[TEMPLEN];
+} Measurement;
+
+void getData(char *buff, Measurement* reading){  
+    char* ptr = strtok(buff, ",");
+    strncpy(reading->date, ptr, DATELEN);
+    ptr = strtok(NULL, ",");
+    strncpy(reading->time, ptr, TIMELEN);
+    ptr = strtok(NULL, "\n");
+    strncpy(reading->temperature, ptr, TEMPLEN);
+}
+
+void readLog(char* name, char* jsonBuffer, int count){
+
+    printf("Buffer length: %d", count);
+
+    char buffer[128];
+    FF_FILE *pxFile;
+
+    Measurement readings[MAXREADINGS];
+
+    Measurement reading;
+
+    FF_Disk_t *pxDisk = NULL;
+
+    if (!mount(&pxDisk, DEVICENAME, MOUNTPOINT)){
+        printf("Failed to mount %s as %s", DEVICENAME, MOUNTPOINT);
+    }
+
+    int n = snprintf(buffer, sizeof buffer, "%s/data/%s", MOUNTPOINT, name);                    
+    configASSERT(0 < n && n < (int)sizeof buffer);
+    if (-1 == mkdirhier(buffer) &&
+        stdioGET_ERRNO() != pdFREERTOS_ERRNO_EEXIST) {
+        printf("failed to set directory");
+        return;
+    }
+
+    printf("Reading log\n");
+
+    snprintf(buffer + n, sizeof buffer - n, "/log_data.csv");
+    //configASSERT(nw);
+    pxFile = ff_fopen(buffer, "r");
+    printf("Opening log file: %s", buffer);
+
+    // need to check if mounted
+    if (pxFile){
+        int i = 0;
+        char* ptr = jsonBuffer;
+        sprintf(jsonBuffer, "[");
+        int len=1;
+        ff_fgets(buffer, sizeof(buffer), pxFile); // ignore header
+        while(ff_fgets(buffer, sizeof(buffer), pxFile)){
+            if (i >= MAXREADINGS)
+                break;
+            getData(buffer, &reading);
+            memcpy(&readings[i], &reading, sizeof(reading));
+            printf("Count: %d\n", count);
+            printf("Reading [%d] : Date: %s, Time: %s, Temperature: %s\n", i, readings[i].date, readings[i].time, readings[i].temperature );            
+            len = snprintf(ptr+len, count-len, "{\"date\": %s, \"time\": %s,\"temperature\": %s, \"temperature units\": \"%c\"}, ", 
+                                            readings[i].date, readings[i].time, readings[i].temperature, 'F');
+            i++;
+        }
+        sprintf(jsonBuffer+len, "]");
+        ff_fclose(pxFile);  
+    }
+
+}
+
+void readLogTest(NameFunction* ptr, char* buffer, int count){
+    readLog("2023-10-10", buffer, count);
+}
+
 NameFunction routes[] =
 { 
     { "/temp.json", (void*) *returnTemperature },
@@ -131,12 +220,13 @@ NameFunction routes[] =
     { "/gpio/18/get.json", (void*) *returnGPIO },
     { "/gpio/18/1/set.json", (void*) *setGPIO },
     { "/gpio/18/0/set.json", (void*) *setGPIO },
+    { "/readlogtest.json", (void*) *readLogTest },
 };
 
 
 NameFunction* isRoute(const char* name){
 
-    printf("routing : %s\n", name);
+    printf("Routing : %s\n", name);
     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
     {
         if(!strcmp(ptr->routeName, name)) {
@@ -147,16 +237,15 @@ NameFunction* isRoute(const char* name){
 }
 
 void route(NameFunction* ptr, char* buffer, int count){
-    if (buffer){  
-        print_date();      
-        printf("routing with a function pointer, max length: %i\n", count);
+    if (buffer){       
+        //printf("Routing %\n", buffer);
         ptr->routeFunction(ptr, buffer, count);
-        printf("after routeFunction\n");
+        //printf("after routeFunction\n");
     }
     else{
         printf("no buffer\n");
     }
-    printf("returned from route\n");
+    //printf("returned from route\n");
 }
 
 

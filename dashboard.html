@@ -97,7 +97,7 @@
                             gauge.value = json.temperature;
                     }).catch(err => console.error(err));                    
                 };
-                setInterval(getTemperature, 5000);
+                setInterval(getTemperature, 15000);
             };
             function drawGauge(){
                 var gauge = new RadialGauge({

@@ -40,5 +40,9 @@ You will need to change hw_config.h to configure your SD card to use the no-OS-F
 
 Notes
 
-1. Modifed Carl's FreeRTOSConfig.h for SMP core affinity
-2. Can't locate "fs.h" header - why?
+1. Problem in route causing hang
+2. Can we get CLI working?
+3. Route to get temperature history
+4. Checkout FreeRTOS HTTP
+
+

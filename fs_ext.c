@@ -21,11 +21,11 @@
 */
 #include "ff_headers.h"
 #include "ff_stdio.h"
+#include "ff_utils.h"
 
 #include "fs.h"
 
-#include "ff_headers.h"
-#include "ff_utils.h"
+
 
 #include "hw_config.h"
 #include "router.h"
@@ -40,7 +40,7 @@ static bool init = false;
 
 #define FS_FILE_FLAGS_ROUTE             0x80
 
-#define MAX_ROUTE_LEN 1024
+#define MAX_ROUTE_LEN 8096
 
 #define DEVICENAME "sd0"
 #define MOUNTPOINT "/sd0"
@@ -66,9 +66,10 @@ int fs_open_custom(struct fs_file *file, const char *name){
             printf("mounted %s: successfully\n", DEVICENAME);
             init = true;   
         }
-
-        printf("opening custom: %s\n", name);
-        FF_FILE *pxFile = ff_fopen(name, "r");
+        char fullpath[256];
+        sprintf(fullpath, "%s%s",MOUNTPOINT, name);
+        //printf("opening custom: %s\n", fullpath);
+        FF_FILE *pxFile = ff_fopen(fullpath, "r");
         if (pxFile && ff_filelength( pxFile )) {
         
             size_t fsize = ff_filelength( pxFile );
@@ -82,8 +83,10 @@ int fs_open_custom(struct fs_file *file, const char *name){
                 file->pextension = pxFile;
             }
         }
-        panic("failed to open file %s\n", name);
-        return 0;
+        else{
+            printf("failed to open file %s\n", name);
+            return 0;
+        }
     }
     else{ // is a route
         // flag as custom and a route
@@ -93,7 +96,7 @@ int fs_open_custom(struct fs_file *file, const char *name){
         file->flags |= FS_FILE_FLAGS_ROUTE; // not used in fs.c
         file->pextension = fun_ptr; // store the handler for read
         file->len = MAX_ROUTE_LEN; // max len
-        printf("open: %s is a route\n", name);
+        //printf("open: %s is a route\n", name);
     }
     return 1;
 }
@@ -102,25 +105,25 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
     
     uint32_t br = 0;
     if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
-        printf("reading custom\n");
+        //printf("reading custom\n");
         if (file->index < file->len){
 
             FF_FILE *pxFile = file->pextension;
             if (pxFile == NULL)
                 panic("custom read error no SD file pointer\n");
-            br = FF_Read(pxFile, 1, count, buffer);
+            br = ff_fread( buffer, 1, count, pxFile);
             file->index += br;
         }
     }
     else{
         NameFunction* fun_ptr = file->pextension;
         if (fun_ptr){
-            printf("calling route handler\n");
+            //printf("calling route handler\n");
             route(fun_ptr, buffer, count);
         }
-        printf("custom read route, buffer %s\n", buffer);
+        //printf("custom read route, buffer %s\n", buffer);
         br = strlen(buffer);
-        printf("bytes read: %i\n", br);
+        //printf("bytes read: %i\n", br);
         file->len = br;
         file->index += br;
     }
@@ -128,13 +131,13 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
 };
 
 void fs_close_custom(struct fs_file *file){
-    printf("in close\n");
+    //printf("in close\n");
     if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
-        FF_Close(file->pextension);
+        ff_fclose(file->pextension);
     }
     else{
         file->pextension = 0;
     }
-    printf("closed custom file\n");
+    //printf("closed custom file\n");
 }    
 

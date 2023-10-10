@@ -31,7 +31,8 @@
 #define RUN_FREERTOS_ON_CORE 0
 #endif
 
-#define TEST_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
+//#define MAIN_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
+#define MAIN_TASK_PRIORITY 2
 
 void setRTC(NTP_T* npt_t, int status, time_t *result){
     printf("ntp callback received\n");
@@ -82,23 +83,21 @@ void main_task(__unused void *params) {
 
     cyw43_arch_enable_sta_mode();
     printf("Connecting to WiFi...\n");
-    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_MIXED_PSK, 30000)) {
-        printf("failed to connect.\n");
-        exit(1);
-    } else {
-        printf("Connected.\n");
-    }
 
-    printf("\nReady, running httpd at %s\n", ip4addr_ntoa(netif_ip4_addr(netif_list)));
+    for(int i = 0;i<4;i++){
+        if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_MIXED_PSK, 30000) == 0) {
+            printf("\nReady, running httpd at %s\n", ip4addr_ntoa(netif_ip4_addr(netif_list)));
+            break;
+        }
+        printf("Wi-Fi failed to start, retrying");
+    }
 
     getNTPtime(&setRTC);
 
     httpd_init();
 
     bool rc = logger_init();
-    {
-        printf("data logger initialized: %i\n", rc);
-    }
+    printf("data logger initialized: %i\n", rc);
 
     while(true) {
         // not much to do as LED is in another task, and we're using RAW (callback) lwIP API
@@ -111,7 +110,7 @@ void main_task(__unused void *params) {
 
 void vLaunch( void) {
     TaskHandle_t task;
-    xTaskCreate(main_task, "TestMainThread", configMINIMAL_STACK_SIZE, NULL, TEST_TASK_PRIORITY, &task);
+    xTaskCreate(main_task, "TestMainThread", 8096, NULL, MAIN_TASK_PRIORITY, &task);
 
 #if NO_SYS && configUSE_CORE_AFFINITY && configNUM_CORES > 1
     // we must bind the main task to one core (well at least while the init is called)
@@ -127,9 +126,7 @@ void vLaunch( void) {
 int main( void )
 {
     stdio_init_all();
-    sleep_ms (5000); // wait to access to USB serial
-
-
+    sleep_ms (2000); // wait to access to USB serial
     /* Configure the hardware ready to run the demo. */
     const char *rtos_name;
 #if ( portSUPPORT_SMP == 1 )
@@ -140,6 +137,7 @@ int main( void )
 
 #if ( portSUPPORT_SMP == 1 ) && ( configNUM_CORES == 2 )
     printf("Starting %s on both cores:\n", rtos_name);
+
     vLaunch();
 #elif ( RUN_FREE_RTOS_ON_CORE == 1 )
     printf("Starting %s on core 1:\n", rtos_name);
