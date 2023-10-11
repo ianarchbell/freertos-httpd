@@ -133,6 +133,7 @@ void setGPIO(NameFunction* ptr, char* buffer, int count){
 #define DATETIMELEN 23
 #define TEMPLEN 6
 #define MAXREADINGS 10
+#define MAXLEN 54
 
 typedef struct Measurement{
     char date_time[DATETIMELEN];
@@ -146,9 +147,21 @@ void getData(char *buff, Measurement* reading){
     strncpy(reading->temperature, ptr, TEMPLEN);
 }
 
+void getLogDate(NameFunction* ptr, char* buffer){
+
+    char* buff[64]; 
+    strcpy(buff, ptr->routeName);
+
+    char* subString = strtok(buff,"/"); // find the first /
+    subString = strtok(NULL,"/");   // find the second /
+    //subString = strtok(NULL,"/");   // find the third /
+
+    strcpy(buffer, subString);
+}
+
 void readLog(char* name, char* jsonBuffer, int count){
 
-    printf("Buffer length: %d", count);
+    printf("Buffer length: %d, name: %s", count, name);
 
     char buffer[128];
     FF_FILE *pxFile;
@@ -185,18 +198,40 @@ void readLog(char* name, char* jsonBuffer, int count){
         sprintf(jsonBuffer, "[");
         int len = 1;
         int bufferPos = len;
-        ff_fgets(buffer, sizeof(buffer), pxFile); // ignore header
+        //ff_fgets(buffer, sizeof(buffer), pxFile); // ignore header
+
+        ff_fseek(pxFile, 0, FF_SEEK_END);
+        int pos = ff_ftell(pxFile);
+        /* Don't write each char on output.txt, just search for '\n' */
+
+        int recCount = 0;
+
+        while (pos) {
+            ff_fseek(pxFile, --pos, FF_SEEK_SET); /* seek from begin */
+            if (ff_fgetc(pxFile) == '\n') {
+                if (recCount++ == 5)//count/MAXLEN) 
+                    break;
+            }
+            printf("First while");
+        }
+
         while(ff_fgets(buffer, sizeof(buffer), pxFile)){
             if (i >= MAXREADINGS)
                 break;
             getData(buffer, &reading);
             memcpy(&readings[i], &reading, sizeof(reading));
             printf("Count: %d\n", count);
-            printf("Reading [%d] : Date: %s, Temperature: %s\n", i, readings[i].date_time, readings[i].temperature );            
-            len = snprintf(ptr+bufferPos, count-bufferPos, "{\"date\": %s, \"temperature\": %s, \"temperature units\": \"%c\"}, ", 
-                                            readings[i].date_time, readings[i].temperature, 'F');
-            bufferPos += len;
-            i++;
+            printf("Reading [%d] : Date: %s, Temperature: %s\n", i, readings[i].date_time, readings[i].temperature );  
+            if (bufferPos+MAXLEN < count){          
+                len = snprintf(ptr+bufferPos, count-bufferPos, "{\"date\": %s, \"temperature\": %s, \"temperature units\": \"%c\"}, ", 
+                                                readings[i].date_time, readings[i].temperature, 'F');
+                bufferPos += len;
+                i++;
+            }
+            else{
+                break;
+            }
+            printf("Second while"); 
         }
         sprintf(jsonBuffer+bufferPos-2, "]");
         ff_fclose(pxFile);  
@@ -204,8 +239,12 @@ void readLog(char* name, char* jsonBuffer, int count){
 
 }
 
-void readLogTest(NameFunction* ptr, char* buffer, int count){
-    readLog("2023-10-10", buffer, count);
+void readLogWithDate(NameFunction* ptr, char* buffer, int count){
+    char*  logDate = malloc(64);  
+    getLogDate(ptr, logDate);
+    printf("log date: %s\n", logDate);
+    readLog(logDate, buffer, count);
+    free(logDate);
 }
 
 NameFunction routes[] =
@@ -218,7 +257,7 @@ NameFunction routes[] =
     { "/gpio/18/get.json", (void*) *returnGPIO },
     { "/gpio/18/1/set.json", (void*) *setGPIO },
     { "/gpio/18/0/set.json", (void*) *setGPIO },
-    { "/readlogtest.json", (void*) *readLogTest },
+    { "/readlog/2023-10-11/get.json", (void*) *readLogWithDate },
 };
 
 

@@ -50,7 +50,7 @@ static bool print_header(FF_FILE *pxFile) {
     ff_fseek(pxFile, 0, FF_SEEK_END);
     if (0 == ff_ftell(pxFile)) {
         // Print header
-        if (ff_fprintf(pxFile, "Date,Time,Temperature (°C)\n") < 0) {
+        if (ff_fprintf(pxFile, "Date-Time,Temperature (°C)\n") < 0) {
             FAIL("ff_fprintf");
             return false;
         }

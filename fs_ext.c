@@ -40,7 +40,7 @@ static bool init = false;
 
 #define FS_FILE_FLAGS_ROUTE             0x80
 
-#define MAX_ROUTE_LEN 8096
+#define MAX_ROUTE_LEN 1460
 
 #define DEVICENAME "sd0"
 #define MOUNTPOINT "/sd0"
@@ -102,6 +102,8 @@ int fs_open_custom(struct fs_file *file, const char *name){
 }
 
 int fs_read_custom(struct fs_file *file, char *buffer, int count){
+
+    printf("fs_read_custom count: %d\n", count);
     
     uint32_t br = 0;
     if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
@@ -124,7 +126,7 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
         //printf("custom read route, buffer %s\n", buffer);
         br = strlen(buffer);
         //printf("bytes read: %i\n", br);
-        file->len = br;
+        file->len = br; // only reads one record at the moment *** IAN
         file->index += br;
     }
     return br;

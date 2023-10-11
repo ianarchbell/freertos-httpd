@@ -97,7 +97,7 @@
                         gauge.value = json.temperature;
                 }).catch(err => console.error(err));
             };
-            function setTimeInterval() {
+            function setTimeIntervalGauge() {
                 const getTemperature = () => {
                     fetch('http://192.168.50.212/temp.json')
                         .then(res => res.json())
@@ -111,9 +111,9 @@
             };
             // add data
 
-            function setTimeInterval() {
+            function setTimeIntervalHistory() {
                 const getTemperatureHistory = () => {
-                    fetch('http://192.168.50.212/readlogtest.json')
+                    fetch('http://192.168.50.212/readlog/2023-10-11/get.json')
                         .then(res => res.json())
                         .then(json => {
                             console.log(json);
@@ -299,7 +299,8 @@
             // }
             function onBodyLoad(){
                 drawGauge();
-                setTimeInterval();
+                setTimeIntervalGauge();
+                setTimeIntervalHistory();
                 getTemperature();
                 setLEDstate();
                 resize();

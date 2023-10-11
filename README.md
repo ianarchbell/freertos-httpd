@@ -40,9 +40,9 @@ You will need to change hw_config.h to configure your SD card to use the no-OS-F
 
 Notes
 
-1. Problem in route causing hang
-2. Can we get CLI working?
-3. Route to get temperature history
+1. Fixed date
+2. Only one record from route, fixed route buffer, is stack big enough?
+3. Can we get CLI working?
 4. Checkout FreeRTOS HTTP
 
 
