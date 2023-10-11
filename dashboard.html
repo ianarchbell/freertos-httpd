@@ -60,8 +60,18 @@
             }
         </style>
         <script src="https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js"></script>
-        <script src="https://cdn.anychart.com/releases/8.11.0/js/anychart-base.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+
         <script>
+
+            // globals
+            var jsonData;
+            var chartData = [];  
+            var series;
+            var xValues = [];
+            var yValues = [];
+            var historyChart;            
+
             function resize() {
                 var canvas = document.getElementById("tempGauge");
                 // Resize the window, not the pen
@@ -76,7 +86,7 @@
 
                 canvas.style.width = width + 'px';
                 canvas.style.height = height + 'px';
-            }
+            };
             window.addEventListener('resize', resize, false);
             function getTemperature() {
                 fetch('http://192.168.50.212/temp.json')
@@ -98,6 +108,20 @@
                     }).catch(err => console.error(err));                    
                 };
                 setInterval(getTemperature, 15000);
+            };
+            // add data
+
+            function setTimeInterval() {
+                const getTemperatureHistory = () => {
+                    fetch('http://192.168.50.212/readlogtest.json')
+                        .then(res => res.json())
+                        .then(json => {
+                            console.log(json);
+                            jsonData = json;
+                            updateData(jsonData);
+                    }).catch(err => console.error(err));                    
+                };
+                setInterval(getTemperatureHistory, 15000);
             };
             function drawGauge(){
                 var gauge = new RadialGauge({
@@ -156,7 +180,7 @@
                     colorValueBoxRect: "#222",
                     colorValueBoxRectEnd: "#333"
                 }).draw();
-            }
+            };
             function setLEDstate(){
                 var checkbox = document.getElementById('LED');
                 fetch('http://192.168.50.212/led.json')
@@ -166,7 +190,7 @@
                         console.log(json.led);
                         checkbox.checked = json.led;
                 }).catch(err => console.error(err));
-            }
+            };
             function checkState(){
                 var checkbox = document.getElementById('LED');
                 if (checkbox.checked == true){
@@ -177,59 +201,102 @@
                     fetch('http://192.168.50.212/led/0.json')
                     .catch(err => console.error(err));
                 }
-            }
-            function drawChart() {
-  
-                // add data
-                var data = [
-                    ["2003-10-1", 1, 0, 0],
-                    ["2004", 4, 0, 0],
-                    ["2005", 6, 0, 0],
-                    ["2006", 9, 1, 0],
-                    ["2007", 12, 2, 0],
-                    ["2008", 13, 5, 1],
-                    ["2009", 15, 6, 1],
-                    ["2010", 16, 9, 1],
-                    ["2011", 16, 10, 4],
-                    ["2012", 17, 11, 5],
-                    ["2013", 17, 13, 6],
-                    ["2014", 17, 14, 7],
-                    ["2015", 17, 14, 10],
-                    ["2016", 17, 14, 12],
-                    ["2017", 19, 16, 12],
-                    ["2018", 20, 17, 14],
-                    ["2019", 20, 19, 16],
-                    ["2020", 20, 20, 17],
-                    ["2021", 20, 20, 20],
-                    ["2022", 20, 22, 20]
-                ];
-                
-                // create a data set
-                var dataSet = anychart.data.set(data);
-
-                // map the data for all series
-                var firstSeriesData = dataSet.mapAs({x: 0, value: 1});
-
-                // create a line chart
-                var chart = anychart.line();
-
-                // create the series and name them
-                var firstSeries = chart.line(firstSeriesData);
-                firstSeries.name("Ian's Pico");
-
-                // add a legend
-                chart.legend().enabled(true);
-                
-                // add a title
-                chart.title("Core Temperature");
-                
-                // specify where to display the chart
-                chart.container("graph-container");
-                
-                // draw the resulting chart
-                chart.draw();
-            
             };
+
+            jsonLocal = [{"date": "2023-10-10T19:11:56Z", "temperature": 90.3, "temperature units": "F"}, {"date": "2023-10-10T19:12:57Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:13:56Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:16:06Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:17:05Z", "temperature": 92.7, "temperature units": "F"}, {"date": "2023-10-10T19:18:05Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:19:05Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:21:12Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:22:12Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:23:12Z", "temperature": 92.2, "temperature units": "F"}];
+            //generateData("x * 2 + 7", 0, 10, 0.5);
+            //generateData(jsonLocal);
+            function updateData(jsonLocal){
+                xValues = [];
+                yValues = [];
+                // need to convert json into array for anychart
+                for(i = 0; i < jsonLocal.length; i++) {
+                    console.log(jsonLocal[i]);
+                    var date = new Date(jsonLocal[i].date);
+                    xValues.push(date.toLocaleString());
+                    yValues.push(jsonLocal[i].temperature);
+                }; 
+                console.log(xValues);
+                console.log(yValues);  
+                historyChart.data.datasets[0].data = yValues;
+                historyChart.data.labels = xValues;
+                historyChart.update();             
+            };
+            // function addData(chart, label, newData) {
+            //     chart.data.labels.push(label);
+            //     chart.data.datasets.forEach((dataset) => {
+            //         dataset.data.push(newData);
+            //     });
+            //     chart.update();
+            // }
+
+            // function removeData(chart) {
+            //     chart.data.labels.pop();
+            //     chart.data.datasets.forEach((dataset) => {
+            //         dataset.data.pop();
+            //     });
+            //     chart.update();
+            // }
+            function drawChart() {    
+                historyChart = new Chart("myChart", {
+                    type: "line",
+                    data: {
+                        labels: xValues,
+                        datasets: [{
+                        fill: false,
+                        pointRadius: 1,
+                        borderColor: "rgba(255,0,0,0.5)",
+                        data: yValues
+                        }]
+                    },    
+                    options: {
+                        legend: {display: false},
+                        title: {
+                        display: true,
+                        text: "Core Temperature",
+                        fontSize: 16
+                        }
+                    }
+                });            
+            }
+            // function drawChart(json) {    
+
+            //     // need to convert json into array for anychart
+            //     var data = [];
+            //     for(i = 0; i < json.length; i++) {
+            //     console.log(json[i]);
+            //     data[i] =  [json[i].date, json[i].temperature];
+            //     console.log(data[i]);
+            //     };
+
+            //     console.log(data);
+                            
+            //     // create a data set
+            //     var dataSet = anychart.data.set(data);
+
+            //     // map the data for all series
+            //     var firstSeriesData = dataSet.mapAs({x: 0, value: 1});
+
+            //     // create a line chart
+            //     var chart = anychart.line();
+
+            //     // create the series and name them
+            //     var firstSeries = chart.line(firstSeriesData);
+            //     firstSeries.name("Ian's Pico");
+
+            //     // add a legend
+            //     chart.legend().enabled(true);
+
+            //     // add a title
+            //     chart.title("Core Temperature");
+
+            //     // specify where to display the chart
+            //     chart.container("graph-container");
+
+            //     // draw the resulting chart
+            //     chart.draw();
+
+            // }
             function onBodyLoad(){
                 drawGauge();
                 setTimeInterval();
@@ -238,7 +305,7 @@
                 resize();
                 drawChart()
             }
-        </script>
+    </script>
     </head>
     <body onLoad="onBodyLoad()"> 
 
@@ -251,7 +318,9 @@
             </div>
             <div class="f-card c1 c1-md c1-3-lg">
                 <h3>Temperature History</h2>
-                <div id="graph-container"></div>
+                <div id="graph-container">
+                    <canvas id="myChart" style="width:100%;max-width:600px"></canvas>
+                </div>
             </div>
             <div class="f-card c1 c1-md c-1-lg">
                 <h3>Controls</h2>
