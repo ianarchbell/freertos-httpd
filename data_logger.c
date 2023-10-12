@@ -33,6 +33,8 @@ specific language governing permissions and limitations under the License.
 #include <queue.h>
 #include <timers.h>
 
+#include "adc.h"
+
 #define DEVICENAME "sd0"
 #define MOUNTPOINT "/sd0"
 
@@ -109,7 +111,7 @@ static void write_log_data(TimerHandle_t taskTimer) {
     if (!mount(&pxDisk, DEVICENAME, MOUNTPOINT)) 
         return;
 
-    adc_init();
+    //adc_init();
 
     /* The xLastWakeTime variable needs to be initialized with the current
      tick count. Note that this is the only time the variable is written to
@@ -136,19 +138,20 @@ static void write_log_data(TimerHandle_t taskTimer) {
     size_t n = snprintf(buf, sizeof buf, "\"%04d-%02d-%02dT%02d:%02d:%02dZ\",", t.year, t.month,t.day, t.hour, t.min, t.sec);
     //configASSERT(n);
 
-    // The temperature sensor is on input 4:
-    adc_select_input(4);
-    uint16_t result = adc_read();
-    // 12-bit conversion, assume max value == ADC_VREF == 3.3 V
-    const float conversion_factor = 3.3f / (1 << 12);
-    float voltage = conversion_factor * result;
-    TRACE_PRINTF("Raw value: 0x%03x, voltage: %f V\n", result,
-                    (double)voltage);
+    float Tc = getCoreTemperature('F');
+    // // The temperature sensor is on input 4:
+    // adc_select_input(4);
+    // uint16_t result = adc_read();
+    // // 12-bit conversion, assume max value == ADC_VREF == 3.3 V
+    // const float conversion_factor = 3.3f / (1 << 12);
+    // float voltage = conversion_factor * result;
+    // TRACE_PRINTF("Raw value: 0x%03x, voltage: %f V\n", result,
+    //                 (double)voltage);
 
     // Temperature sensor values can be approximated in centigrade as:
     //    T = 27 - (ADC_Voltage - 0.706)/0.001721
-    float Tc = 27.0f - (voltage - 0.706f) / 0.001721f;
-    TRACE_PRINTF("Temperature: %.1f °F\n", (double)Tc);
+    //float Tc = 27.0f - (voltage - 0.706f) / 0.001721f;
+    //TRACE_PRINTF("Temperature: %.1f °F\n", (double)Tc);
     int nw = snprintf(buf + n, sizeof buf - n, "%.3g\n", (double)Tc);
     configASSERT(0 < nw && nw < (int)sizeof buf);
 

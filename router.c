@@ -10,6 +10,8 @@
 
 #include "router.h"
 
+#include "adc.h"
+
 #define DEVICENAME "sd0"
 #define MOUNTPOINT "/sd0"
 
@@ -21,35 +23,39 @@
  * pico-examples/adc/adc_console/adc_console.c */
 float read_onboard_temperature(const char unit) {
 
+
+    float temp = getCoreTemperature(unit);
     /* Initialize hardware AD converter, enable onboard temperature sensor and
      *   select its channel (do this once for efficiency, but beware that this
      *   is a global operation). */
-    adc_init();
-    adc_set_temp_sensor_enabled(true);
-    adc_select_input(4);
+    // adc_init();
+    // adc_set_temp_sensor_enabled(true);
+    // adc_select_input(4);
     
-    /* 12-bit conversion, assume max value == ADC_VREF == 3.3 V */
-    const float conversionFactor = 3.3f / (1 << 12);
+    // /* 12-bit conversion, assume max value == ADC_VREF == 3.3 V */
+    // const float conversionFactor = 3.3f / (1 << 12);
 
-    float adc = (float)adc_read() * conversionFactor;
-    float tempC = 27.0f - (adc - 0.706f) / 0.001721f;
+    // float adc = (float)adc_read() * conversionFactor;
+    // float tempC = 27.0f - (adc - 0.706f) / 0.001721f;
 
     if (unit == 'C') {
-        return tempC;
+        return temp;
     } else if (unit == 'F') {
-        return tempC * 9 / 5 + 32;
+        return temp * 9 / 5 + 32;
     }
 
     return -1.0f;
 }
 
 void returnTemperature(NameFunction* ptr, char* buffer, int count){
-    float temperature = read_onboard_temperature(TEMPERATURE_UNITS);
-    printf("Onboard temperature = %.02f %c\n", temperature, TEMPERATURE_UNITS);
+
+    float temperature = getCoreTemperature(TEMPERATURE_UNITS);
+
+    printf("Onboard temperature =  %.3g %c\n", (double)temperature, TEMPERATURE_UNITS);
 
     if (buffer){
         // Output JSON very simply
-        sprintf(buffer, "{\"temperature\": %.02f,\"temperature units\": \"%c\"}", temperature, TEMPERATURE_UNITS);
+        sprintf(buffer, "{\"temperature\": %.3g,\"temperature units\": \"%c\"}", (double)temperature, TEMPERATURE_UNITS);
     }
 }
 
@@ -209,10 +215,9 @@ void readLog(char* name, char* jsonBuffer, int count){
         while (pos) {
             ff_fseek(pxFile, --pos, FF_SEEK_SET); /* seek from begin */
             if (ff_fgetc(pxFile) == '\n') {
-                if (recCount++ == 5)//count/MAXLEN) 
+                if (recCount++ == count/MAXLEN) 
                     break;
             }
-            printf("First while");
         }
 
         while(ff_fgets(buffer, sizeof(buffer), pxFile)){
@@ -231,7 +236,6 @@ void readLog(char* name, char* jsonBuffer, int count){
             else{
                 break;
             }
-            printf("Second while"); 
         }
         sprintf(jsonBuffer+bufferPos-2, "]");
         ff_fclose(pxFile);  
@@ -257,7 +261,7 @@ NameFunction routes[] =
     { "/gpio/18/get.json", (void*) *returnGPIO },
     { "/gpio/18/1/set.json", (void*) *setGPIO },
     { "/gpio/18/0/set.json", (void*) *setGPIO },
-    { "/readlog/2023-10-11/get.json", (void*) *readLogWithDate },
+    { "/readlog/2023-10-12/get.json", (void*) *readLogWithDate },
 };
 
 
