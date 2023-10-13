@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 
 #include "hardware/adc.h"
+#include <stdlib.h>
+#include "pico/cyw43_arch.h"
 
 #include "ff_headers.h"
 #include "ff_utils.h"
@@ -155,7 +156,7 @@ void getData(char *buff, Measurement* reading){
 
 void getLogDate(NameFunction* ptr, char* buffer){
 
-    char* buff[64]; 
+    char buff[64]; 
     strcpy(buff, ptr->routeName);
 
     char* subString = strtok(buff,"/"); // find the first /

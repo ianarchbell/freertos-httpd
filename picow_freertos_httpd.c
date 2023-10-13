@@ -19,6 +19,10 @@
 #include "pico/util/datetime.h"
 #include "hardware/rtc.h"
 
+#include "data_logger.h"
+
+#include "picow_ntp_client.h"
+
 //Check these definitions where added from the makefile
 #ifndef WIFI_SSID
 #error "WIFI_SSID not defined"

@@ -33,6 +33,8 @@ specific language governing permissions and limitations under the License.
 #include <queue.h>
 #include <timers.h>
 
+#include "hardware/rtc.h"
+
 #include "adc.h"
 
 #define DEVICENAME "sd0"

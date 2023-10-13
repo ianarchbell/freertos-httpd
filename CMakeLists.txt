@@ -30,11 +30,17 @@ message("FAT path: " ${FAT_PATH})
 add_subdirectory(${FAT_PATH}/FreeRTOS+FAT+CLI ./build)
 
 # seems to stop the initial check of the compiler and avoids failure
-add_compile_options(-Wall
+# add_compile_options(-Wall
+#         -Wno-format          # int != int32_t as far as the compiler is concerned because gcc has int32_t as long int
+#         -Wno-unused-function # we have some for the docs that aren't called
+#         -Wno-maybe-uninitialized
+#         )
+
+add_compile_options(-Wimplicit #let's check we have headers
         -Wno-format          # int != int32_t as far as the compiler is concerned because gcc has int32_t as long int
         -Wno-unused-function # we have some for the docs that aren't called
         -Wno-maybe-uninitialized
-        )
+        )        
 
 if (NOT DEFINED ENV{WIFI_SSID})
 	message(FATAL_ERROR "WIFI_SSID Environment variable not defined")
@@ -90,7 +96,7 @@ target_include_directories(picow_freertos_httpd_sys PRIVATE
         ${FREERTOS_KERNEL_PATH}/include
         ${FREERTOS_PATH}/portable/GCC/ARM_CM0
         ${CMAKE_CURRENT_LIST_DIR} 
-         )       
+        )       
 target_link_libraries(picow_freertos_httpd_sys        
         pico_stdlib
         pico_cyw43_arch_lwip_sys_freertos
