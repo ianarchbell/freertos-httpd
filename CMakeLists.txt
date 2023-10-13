@@ -36,7 +36,7 @@ add_subdirectory(${FAT_PATH}/FreeRTOS+FAT+CLI ./build)
 #         -Wno-maybe-uninitialized
 #         )
 
-add_compile_options(-Wimplicit #let's check we have headers
+add_compile_options( # -Wimplicit #check we have headers
         -Wno-format          # int != int32_t as far as the compiler is concerned because gcc has int32_t as long int
         -Wno-unused-function # we have some for the docs that aren't called
         -Wno-maybe-uninitialized
