@@ -61,7 +61,7 @@ A port of the ESP32 web server (both HTTP and HTTPS) to the Pico may be the way 
 
 Using this project (will need a Pico W or other networking access):
 
-1. git clone: --submodules --recursive https:
+1. git clone --recurse-submodules https://github.com/ianarchbell/freertos-httpd.git
 2. mkdir build
 3. cd build
 4. cmake ..
