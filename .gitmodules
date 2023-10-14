@@ -1,3 +1,3 @@
 [submodule "FreeRTOS-FAT-CLI-for-RPi-Pico"]
 	path = FreeRTOS-FAT-CLI-for-RPi-Pico
-	url = git@github.com:carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico.git
+	url = https://github.com/ianarchbell/FreeRTOS-FAT-CLI-for-RPi-Pico.git
