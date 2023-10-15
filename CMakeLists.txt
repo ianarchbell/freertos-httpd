@@ -6,13 +6,13 @@ include(pico_sdk_import.cmake)
 # Pull in FreeRTOS
 include(FreeRTOS_Kernel_import.cmake)
 
-set(PICO_LWIP_APP_INCLUDE_PATH "/Users/Ian/pico/pico-sdk/lib/lwip/src/include/lwip/apps")
-#set(PICO_LWIP_CONTRIB_PATH        /Users/Ian/pico/pico-sdk/lib/lwip/src/)
+set(PICO_LWIP_APP_INCLUDE_PATH "${PICO_SDK_PATH}/lib/lwip/src/include/lwip/apps")
 
-set(FATPATH "/Users/Ian/pico/freertos-httpd/FreeRTOS-FAT-CLI-for-RPi-Pico")
+set(FATPATH "${CMAKE_CURRENT_LIST_DIR}/FreeRTOS-FAT-CLI-for-RPi-Pico")
 
 message("LWIP app path: " ${PICO_LWIP_APP_INCLUDE_PATH})
-#message("LWIP http app include path: " ${PICO_LWIP_CONTRIB_PATH})
+
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 project(test C CXX ASM)
 set(CMAKE_C_STANDARD 11)
