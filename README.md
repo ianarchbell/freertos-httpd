@@ -7,6 +7,8 @@ SD Card file access as well as JSON support for background fetch to enable Singl
 
 The aim was not to reinvent the wheel and as far as possible use the LWIP distributed HTTPD application. However, this implementation only supported "packed files", that is converted and stored in the application itself. This was believed to be overly restrictive and with the availability of ChaN's FAT filesystem for SD Cards and in particular the already working port of that to the Raspberry Pi Pico.
 
+This is not production code. It enables a simple demonstration of serving files located on an sd card and json from a Pico. The web demo (dashboard.html) shows real-time update of the Pico core temperature with a background fetch as well as the last 10 updates rom a log file. You'll need to update the date in the route in router.c (/readlog/) to pull the right date data. It also shows how to turn the led and on and off and get the state using routing/json.
+
 ## Libraries
 
 FreeRTOS FAT base library: https://github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT
@@ -51,11 +53,25 @@ You will need to change hw_config.h to configure your SD card to use the FreeRTO
 
 This is demo code and provided on that basis. The most useful aspect of this work is the provision of a custom file system enabling SD Cards and secondly the example of how to integrate routing. Routing is rudimentary but you could take it from here. If you need HTTP POST etc you will need another HTTPD.
 
-A port of the ESP32 web server (both HTTP and HTTPS) to the Pico may be the way to go...
-
 1. Only supports HTTP get
 2. As currently designed json responses can only be one block in length - easily changeable in fs_ext.c read_custom
 3. Routes do not allow variables in them
+
+
+## Prerequisites
+
+Hardware
+
+1. Pico W
+2. Board with Pico socket and SD Card. I'm using Pico Expansion Plus S1 (https://www.amazon.com/XICOOLEE-Expansion-Expander-Raspberry-External/dp/B0BBVJHQCJ) or Cytron Maker (https://www.digikey.com/en/products/detail/cytron-technologies-sdn-bhd/MAKER-PI-RP2040/14557836), but most others will work in SPI mode.
+
+Software Installed
+
+1. PICO-SDK (with LWIP stack and HTTP app) from Github
+2. FreeRTOS-Kernel from Github
+3. ARM toolchain: arm-none-eabi (see: https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads)
+4. CMake
+5. make
 
 ## Usage
 
@@ -65,13 +81,14 @@ Using this project (will need a Pico W or other networking access):
 2. cd freertos-httpd
 3. mkdir build
 4. cd build
-5. export PICO_SDK_PATH=/Users/Ian/pico/pico-sdk
-6. export WIFI_SSID={your-ssid}
-7. export WIFI_PASSWORD={your-password}
-4. cmake ..
-5. make
-6. copy dashboard.html to an sd card
-6. copy the UF2 file to the Pico W
-7. http://{ip address}/dashboard.html
+5. export PICO_SDK_PATH=/{your-location}/pico-sdk
+6. export FREERTOS_KERNEL_PATH=/{your-location}/FreeRTOS-Kernel
+7. export WIFI_SSID={your-ssid}
+8. export WIFI_PASSWORD={your-password}
+9. cmake ..
+10. make
+11. copy dashboard.html to an sd card
+12. copy the UF2 file to the Pico W
+13. http://{ip address}/dashboard.html
 
 
