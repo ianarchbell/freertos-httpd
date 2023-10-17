@@ -5,6 +5,7 @@ typedef struct NameFunction_struct
 {
     const char* routeName;
     void (*routeFunction)(void*, char*, int);
+    char* uri;
 }
 NameFunction;
 

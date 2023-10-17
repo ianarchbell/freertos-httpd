@@ -91,6 +91,7 @@ int fs_open_custom(struct fs_file *file, const char *name){
         }
     }
     else{ // is a route
+        printf("%s is a defined route\n", name);
         // flag as custom and a route
         file->data = NULL;
         file->index = 0;
@@ -113,12 +114,12 @@ int printHTMLHeaders(char* buffer, int count){
 
 int fs_read_custom(struct fs_file *file, char *buffer, int count){
 
-    printf("fs_read_custom count: %d\n", count);
-    printf("file->len = %d, file->index = %d\n", file->len, file->index);
     
     uint32_t br = 0;
 
     if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
+        printf("fs_read_custom count: %d\n", count);
+        printf("file->len = %d, file->index = %d\n", file->len, file->index);
         int offset = 0;
         if (!((file->flags & FS_FILE_FLAGS_HEADERS_OUT) != 0)) {
             printf("Printing http headers\n");
@@ -145,13 +146,14 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
     }
     else{
         NameFunction* fun_ptr = file->pextension;
+        printf("fs_read : execute route %s, uri: %s\n", fun_ptr->routeName, fun_ptr->uri);
         if (fun_ptr){
-            //printf("calling route handler\n");
+            printf("calling route handler\n");
             route(fun_ptr, buffer, count);
         }
-        //printf("custom read route, buffer %s\n", buffer);
+        printf("custom read route, buffer %s\n", buffer);
         br = strlen(buffer);
-        //printf("bytes read: %i\n", br);
+        printf("bytes read: %i\n", br);
         file->len = br; // only reads one record at the moment *** IAN
         file->index += br;
     }

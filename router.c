@@ -72,12 +72,23 @@ void returnTemperature(NameFunction* ptr, char* buffer, int count){
     }
 }
 
+int getSetValue(NameFunction* ptr){
+
+    char buff[64]; 
+    strcpy(buff, ptr->uri);
+    char* subString = strtok(buff,"/"); // find the first /
+    char* subString2 = strtok(NULL,"/");       // find the second /
+    if (subString2 == NULL)
+        return -1;
+    else{
+        printf("Got LED uri value %s", subString2);
+        return atoi(subString2);
+    }
+}
+
 void returnLED(NameFunction* ptr, char* buffer, int count){
-
+    printf("Getting LED value");
     char buf[64];
-
-    //cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
-
     int led = cyw43_arch_gpio_get(CYW43_WL_GPIO_LED_PIN);
     if (buffer){
         // Output JSON very simply
@@ -87,10 +98,10 @@ void returnLED(NameFunction* ptr, char* buffer, int count){
     }
 }
 
-void setLEDon(NameFunction* ptr, char* buffer, int count){
-
+void setLED(NameFunction* ptr, char* buffer, int count, int value){
+    printf("Setting LED value %d", value);
     char buf[64];
-    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
+    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, value);
     if (buffer){    
         int len = sprintf(buf, "%s", "{\"success\" : true}");
         printJSONHeaders(buffer, len); // print out headers with no body
@@ -98,14 +109,13 @@ void setLEDon(NameFunction* ptr, char* buffer, int count){
     }
 }
 
-void setLEDoff(NameFunction* ptr, char* buffer, int count){
-
-    char buf[64];
-    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
-    if (buffer){ 
-        int len = sprintf(buf, "%s", "{\"success\" : true}");
-        printJSONHeaders(buffer, len); // print out headers with no body
-        strcat(buffer, buf);
+void led(NameFunction* ptr, char* buffer, int count){
+    int i = getSetValue(ptr);
+    if(i != -1){
+        setLED(ptr, buffer, count, i);
+    }
+    else{
+        returnLED(ptr, buffer, count);
     }
 }
 
@@ -130,6 +140,10 @@ char* getGPIOvalue(NameFunction* ptr){
     subString = strtok(NULL,"/");   // find the third /
 
     return subString;
+}
+
+void gpio(NameFunction* ptr, char* buffer, int count){
+
 }
 
 void returnGPIO(NameFunction* ptr, char* buffer, int count){
@@ -187,7 +201,7 @@ void getData(char *buff, Measurement* reading){
 void getLogDate(NameFunction* ptr, char* buffer){
 
     char buff[64]; 
-    strcpy(buff, ptr->routeName);
+    strcpy(buff, ptr->uri);
 
     char* subString = strtok(buff,"/"); // find the first /
     subString = strtok(NULL,"/");   // find the second /
@@ -276,7 +290,7 @@ void readLog(char* name, char* jsonBuffer, int count){
 
 void readLogWithDate(NameFunction* ptr, char* buffer, int count){
     #define MINBUFSIZE 64
-    #define JSONBUFFSIZE 2048
+    #define JSONBUFFSIZE 1024
     
     char* logDate = malloc(MINBUFSIZE);
      if (logDate){
@@ -285,9 +299,10 @@ void readLogWithDate(NameFunction* ptr, char* buffer, int count){
             getLogDate(ptr, logDate);
             printf("log date: %s\n", logDate);
             readLog(logDate, buf, JSONBUFFSIZE);
+            printf("Response from readLog: %s\n", buf);
             int len = strlen(buf);
-            printJSONHeaders(buffer, len);
-            strcat(buffer, buf);
+            int hdrLen = printJSONHeaders(buffer, len);
+            strcat(buffer+hdrLen, buf);
             free(buf);
         }
         else{
@@ -306,19 +321,13 @@ NameFunction routes[] =
 { 
     { "/temp", (void*) *returnTemperature },
     { "/temperature", (void*) *returnTemperature },
-    { "/led", (void*) *returnLED },
-    { "/led/1", (void*) *setLEDon },
-    { "/led/0", (void*) *setLEDoff },
-    { "/gpio/18", (void*) *returnGPIO },
-    { "/gpio/18/1", (void*) *setGPIO },
-    { "/gpio/18/0", (void*) *setGPIO },
-    { "/readlog/2023-10-12", (void*) *readLogWithDate },
+    { "/led/:value", (void*) *led }, 
+    { "/gpio/:gpio/:value", (void*) *gpio },  
+    { "/readlog/:date", (void*) *readLogWithDate },
 };
 
-
-NameFunction* isRoute(const char* name){
-
-    printf("Routing : %s\n", name);
+NameFunction* parseExact(const char* name){
+    printf("Parsing exact route : %s\n", name);
     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
     {
         if(!strcmp(ptr->routeName, name)) {
@@ -328,10 +337,43 @@ NameFunction* isRoute(const char* name){
     return 0;
 }
 
+NameFunction* parsePartialMatch(const char* name){
+    printf("Parsing partial route : %s\n", name);
+    for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
+    {
+        for (int routeLen = strlen(name); routeLen > 0; routeLen --){
+            if(!strncmp(ptr->routeName, name, routeLen)) {
+                if (routeLen > 1){ // don't return a match on '/'
+                    return ptr;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+NameFunction* isRoute(const char* name){
+
+    printf("Routing : %s\n", name);
+    NameFunction* ptr = parseExact(name);
+
+    if (!ptr){ // always return an exact match if found otherwise look for partial
+        ptr = parsePartialMatch(name);
+    }
+    if (ptr){
+        ptr->uri = malloc(strlen(name));
+        strcpy(ptr->uri, name);
+    }
+    return ptr;  
+}
+
 void route(NameFunction* ptr, char* buffer, int count){
     if (buffer){       
-        //printf("Routing %\n", buffer);
+        printf("Routing %\n", buffer);
         ptr->routeFunction(ptr, buffer, count);
+        printf("routed uri: %s\n", ptr->uri);
+        if (ptr->uri)
+            free(ptr->uri);
         //printf("after routeFunction\n");
     }
     else{
