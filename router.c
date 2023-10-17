@@ -74,45 +74,55 @@ void returnTemperature(NameFunction* ptr, char* buffer, int count){
 
 void returnLED(NameFunction* ptr, char* buffer, int count){
 
+    char buf[64];
+
     //cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
 
     int led = cyw43_arch_gpio_get(CYW43_WL_GPIO_LED_PIN);
     if (buffer){
         // Output JSON very simply
-        sprintf(buffer, "{\"led\": %d}", led);
+        int len = sprintf(buf, "{\"led\": %d}", led);
+        printJSONHeaders(buffer, len);
+        strcat(buffer, buf);
     }
 }
 
 void setLEDon(NameFunction* ptr, char* buffer, int count){
 
+    char buf[64];
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
-    if (buffer){       
-        sprintf(buffer, ""); // nothing to send
+    if (buffer){    
+        int len = sprintf(buf, "%s", "{\"success\" : true}");
+        printJSONHeaders(buffer, len); // print out headers with no body
+        strcat(buffer, buf);
     }
 }
 
 void setLEDoff(NameFunction* ptr, char* buffer, int count){
 
+    char buf[64];
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
     if (buffer){ 
-        sprintf(buffer, ""); // nothing to send
+        int len = sprintf(buf, "%s", "{\"success\" : true}");
+        printJSONHeaders(buffer, len); // print out headers with no body
+        strcat(buffer, buf);
     }
 }
 
 char* getGPIO(NameFunction* ptr){
 
-    char buffer[1024];  // where we will put a copy of the input
+    char buffer[64];  // where we will put a copy of the input
     strcpy(buffer, ptr->routeName);
 
-    char* subString = strtok(buffer,"/"); // find the first double quote
-    subString = strtok(NULL,"/");   // find the second double quote
+    char* subString = strtok(buffer,"/"); // find the first /
+    subString = strtok(NULL,"/");   // find the second /
 
     return subString;
 }
 
 char* getGPIOvalue(NameFunction* ptr){
 
-    char buffer[1024];  // where we will put a copy of the input
+    char buffer[64];  // where we will put a copy of the input
     strcpy(buffer, ptr->routeName);
 
     char* subString = strtok(buffer,"/"); // find the first /
@@ -124,16 +134,22 @@ char* getGPIOvalue(NameFunction* ptr){
 
 void returnGPIO(NameFunction* ptr, char* buffer, int count){
     
+    char buf[64];
     char* gpio_pin = getGPIO(ptr);
     int gpio_value = (int)gpio_get(atoi(gpio_pin));
 
     if (buffer){
         // Output JSON very simply
-        sprintf(buffer, "{\"%s\" : %d}", gpio_pin, gpio_value);
+        int len = sprintf(buf, "{\"%s\" : %d}", gpio_pin, gpio_value);
+        printJSONHeaders(buffer, len);
+        strcat(buffer, buf);
     }
 }
 
 void setGPIO(NameFunction* ptr, char* buffer, int count){
+
+    char buf[64];
+
     printf("in setGPIO\n");
     int gpio_pin = strtol(getGPIO(ptr), NULL, 10);
     printf("gpio pin: %i\n",gpio_pin);
@@ -143,7 +159,9 @@ void setGPIO(NameFunction* ptr, char* buffer, int count){
     gpio_set_dir(gpio_pin, GPIO_OUT);
     gpio_put(gpio_pin, gpio_value);
     if (buffer){       
-        sprintf(buffer, ""); // nothing to send
+        int len = sprintf(buf, "%s", "{\"success\" : true}");
+        printJSONHeaders(buffer, len); // print out headers with no body
+        strcat(buffer, buf);
     }
     printf("exiting setGPIO\n");
 }
@@ -180,7 +198,7 @@ void getLogDate(NameFunction* ptr, char* buffer){
 
 void readLog(char* name, char* jsonBuffer, int count){
 
-    printf("Buffer length: %d, name: %s", count, name);
+    printf("Buffer length: %d, name: %s\n", count, name);
 
     char buffer[128];
     FF_FILE *pxFile;
@@ -208,7 +226,7 @@ void readLog(char* name, char* jsonBuffer, int count){
     snprintf(buffer + n, sizeof buffer - n, "/log_data.csv");
     //configASSERT(nw);
     pxFile = ff_fopen(buffer, "r");
-    printf("Opening log file: %s", buffer);
+    printf("Opening log file: %s\n", buffer);
 
     // need to check if mounted
     if (pxFile){
@@ -257,24 +275,44 @@ void readLog(char* name, char* jsonBuffer, int count){
 }
 
 void readLogWithDate(NameFunction* ptr, char* buffer, int count){
-    char*  logDate = malloc(64);  
-    getLogDate(ptr, logDate);
-    printf("log date: %s\n", logDate);
-    readLog(logDate, buffer, count);
-    free(logDate);
+    #define MINBUFSIZE 64
+    #define JSONBUFFSIZE 2048
+    
+    char* logDate = malloc(MINBUFSIZE);
+     if (logDate){
+        char* buf = malloc(JSONBUFFSIZE);  
+        if (buf){
+            getLogDate(ptr, logDate);
+            printf("log date: %s\n", logDate);
+            readLog(logDate, buf, JSONBUFFSIZE);
+            int len = strlen(buf);
+            printJSONHeaders(buffer, len);
+            strcat(buffer, buf);
+            free(buf);
+        }
+        else{
+            printf("Failed to allocate log buffer\n");
+        }
+        free(logDate);
+     }
+     else{
+        printf("Failed to allocate logDate\n");
+     }
 }
+
+// this is pseudo-REST as it is all via GET - POST is not implemented.
 
 NameFunction routes[] =
 { 
-    { "/temp.json", (void*) *returnTemperature },
-    { "/temperature.json", (void*) *returnTemperature },
-    { "/led.json", (void*) *returnLED },
-    { "/led/1.json", (void*) *setLEDon },
-    { "/led/0.json", (void*) *setLEDoff },
-    { "/gpio/18/get.json", (void*) *returnGPIO },
-    { "/gpio/18/1/set.json", (void*) *setGPIO },
-    { "/gpio/18/0/set.json", (void*) *setGPIO },
-    { "/readlog/2023-10-12/get.json", (void*) *readLogWithDate },
+    { "/temp", (void*) *returnTemperature },
+    { "/temperature", (void*) *returnTemperature },
+    { "/led", (void*) *returnLED },
+    { "/led/1", (void*) *setLEDon },
+    { "/led/0", (void*) *setLEDoff },
+    { "/gpio/18", (void*) *returnGPIO },
+    { "/gpio/18/1", (void*) *setGPIO },
+    { "/gpio/18/0", (void*) *setGPIO },
+    { "/readlog/2023-10-12", (void*) *readLogWithDate },
 };
 
 
