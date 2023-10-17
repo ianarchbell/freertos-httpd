@@ -39,7 +39,7 @@
 static bool init = false;
 
 #define FS_FILE_FLAGS_ROUTE             0x80
-#define FS_FILE_FLAGS_HEADERS_OUT       0x40
+#define FS_FILE_FLAGS_HEADER_OUT        0x40
 
 #define MAX_ROUTE_LEN 1460
 
@@ -56,7 +56,7 @@ int fs_open_custom(struct fs_file *file, const char *name){
     if(!fun_ptr)
     {
         if(!init){
-            // mount sd card - this is global
+            // mount sd card
 
             FF_Disk_t *pxDisk = NULL;
 
@@ -69,7 +69,7 @@ int fs_open_custom(struct fs_file *file, const char *name){
         }
         char fullpath[256];
         sprintf(fullpath, "%s%s",MOUNTPOINT, name);
-        printf("opening custom: %s\n", fullpath);
+        //printf("opening custom: %s\n", fullpath);
         FF_FILE *pxFile = ff_fopen(fullpath, "r");
         if (pxFile && ff_filelength( pxFile )) {
         
@@ -111,39 +111,41 @@ int printHTMLHeaders(char* buffer, int count){
     return strlen(buffer);
 }
 
+
 int fs_read_custom(struct fs_file *file, char *buffer, int count){
 
     printf("fs_read_custom count: %d\n", count);
-    printf("file->len = %d, file->index = %d\n", file->len, file->index);
-    
+ 
     uint32_t br = 0;
 
     if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
-        int offset = 0;
-        if (!((file->flags & FS_FILE_FLAGS_HEADERS_OUT) != 0)) {
-            printf("Printing http headers\n");
-            offset = printHTMLHeaders(buffer,file->len);
-            file->flags |= FS_FILE_FLAGS_HEADERS_OUT;
-            file->len += offset; // allow for the headers
-        }
 
-        printf("reading custom\n");
-        
+        //int offset = 0;
+        // if (!((file->flags & FS_FILE_FLAGS_HEADER_OUT) != 0)){
+        //     offset = printHTMLHeaders(buffer, file->len);
+        //     file->flags |= FS_FILE_FLAGS_HEADER_OUT;
+        //     count -= offset; // allow for headers
+        //     file->len += offset; // make sure we get to eof after we have inserted headers
+        // } 
+
+        //printf("reading custom\n");
         if (file->index < file->len){
-            count -= offset;
+            //printf("file-len in read: %d\n", file->len);
+
             FF_FILE *pxFile = file->pextension;
             if (pxFile == NULL)
                 panic("custom read error no SD file pointer\n");
-            br = ff_fread( buffer + offset, 1, count, pxFile);
-            printf("buffer: '%.*s'\n", count, buffer);
-            br += offset;
-            file->index += br;
+            br = ff_fread( buffer, 1, count, pxFile); 
+            //printf("Bytes read %d\n", br);
+            //printf("%.*s", count, buffer);
+            //br += offset;
+            file->index += br;               
         }
-        else{
-             printf("File index reached file end, file->len = %d, file->index = %d\n", file->len, file->index);
-        }
+        
     }
+
     else{
+        //printf("Handling route in fs_ext.c\n");
         NameFunction* fun_ptr = file->pextension;
         if (fun_ptr){
             //printf("calling route handler\n");
@@ -155,17 +157,18 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
         file->len = br; // only reads one record at the moment *** IAN
         file->index += br;
     }
+    printf("Bytes returned %d\n", br);
     return br;
 };
 
 void fs_close_custom(struct fs_file *file){
-    //printf("in close\n");
+    printf("in close\n");
     if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
         ff_fclose(file->pextension);
     }
     else{
         file->pextension = 0;
     }
-    //printf("closed custom file\n");
+    printf("closed custom file\n");
 }    
 

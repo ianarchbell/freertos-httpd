@@ -114,7 +114,7 @@ void main_task(__unused void *params) {
 
 void vLaunch( void) {
     TaskHandle_t task;
-    xTaskCreate(main_task, "TestMainThread", 8096, NULL, MAIN_TASK_PRIORITY, &task);
+    xTaskCreate(main_task, "TestMainThread", 4096, NULL, MAIN_TASK_PRIORITY, &task);
 
 #if NO_SYS && configUSE_CORE_AFFINITY && configNUM_CORES > 1
     // we must bind the main task to one core (well at least while the init is called)

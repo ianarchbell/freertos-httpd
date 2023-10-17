@@ -48,7 +48,17 @@ float read_onboard_temperature(const char unit) {
     return -1.0f;
 }
 
+int printJSONHeaders(char* buffer, int count){
+    strcpy(buffer, "HTTP/1.1 200 OK\n");
+    strcat(buffer, "Content-Type: application/json\n");
+    sprintf(buffer+strlen(buffer), "Content-Length: %d\n\n", count);
+    printf(buffer);
+    return strlen(buffer);
+}
+
 void returnTemperature(NameFunction* ptr, char* buffer, int count){
+
+    char buf[64];
 
     float temperature = getCoreTemperature(TEMPERATURE_UNITS);
 
@@ -56,7 +66,9 @@ void returnTemperature(NameFunction* ptr, char* buffer, int count){
 
     if (buffer){
         // Output JSON very simply
-        sprintf(buffer, "{\"temperature\": %.3g,\"temperature units\": \"%c\"}", (double)temperature, TEMPERATURE_UNITS);
+        int len = sprintf(buf, "{\"temperature\": %.3g,\"temperature units\": \"%c\"}", (double)temperature, TEMPERATURE_UNITS);
+        printJSONHeaders(buffer, len);
+        strcat(buffer, buf);
     }
 }
 
