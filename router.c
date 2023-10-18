@@ -119,56 +119,10 @@ void led(NameFunction* ptr, char* buffer, int count){
     }
 }
 
-char* getGPIO(NameFunction* ptr){
-
-    char buffer[64];  // where we will put a copy of the input
-    strcpy(buffer, ptr->routeName);
-
-    char* subString = strtok(buffer,"/"); // find the first /
-    subString = strtok(NULL,"/");   // find the second /
-
-    return subString;
-}
-
-char* getGPIOvalue(NameFunction* ptr){
-
-    char buffer[64];  // where we will put a copy of the input
-    strcpy(buffer, ptr->routeName);
-
-    char* subString = strtok(buffer,"/"); // find the first /
-    subString = strtok(NULL,"/");   // find the second /
-    subString = strtok(NULL,"/");   // find the third /
-
-    return subString;
-}
-
-void gpio(NameFunction* ptr, char* buffer, int count){
-
-}
-
-void returnGPIO(NameFunction* ptr, char* buffer, int count){
-    
-    char buf[64];
-    char* gpio_pin = getGPIO(ptr);
-    int gpio_value = (int)gpio_get(atoi(gpio_pin));
-
-    if (buffer){
-        // Output JSON very simply
-        int len = sprintf(buf, "{\"%s\" : %d}", gpio_pin, gpio_value);
-        printJSONHeaders(buffer, len);
-        strcat(buffer, buf);
-    }
-}
-
-void setGPIO(NameFunction* ptr, char* buffer, int count){
+void setGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin, int gpio_value){
 
     char buf[64];
 
-    printf("in setGPIO\n");
-    int gpio_pin = strtol(getGPIO(ptr), NULL, 10);
-    printf("gpio pin: %i\n",gpio_pin);
-    int gpio_value = strtol(getGPIOvalue(ptr), NULL, 10);
-    printf("gpio value: %i\n", gpio_value);
     gpio_init(gpio_pin);
     gpio_set_dir(gpio_pin, GPIO_OUT);
     gpio_put(gpio_pin, gpio_value);
@@ -178,6 +132,64 @@ void setGPIO(NameFunction* ptr, char* buffer, int count){
         strcat(buffer, buf);
     }
     printf("exiting setGPIO\n");
+}
+
+int getGPIO(NameFunction* ptr){
+
+    char buff[64]; 
+    strcpy(buff, ptr->uri);
+    char* subString = strtok(buff,"/"); // find the first /
+    char* subString2 = strtok(NULL,"/");       // find the second /
+    if (subString2 == NULL)
+        return -1;
+    else{
+        printf("Got GPIO number %s\n", subString2);
+        return atoi(subString2);
+    }
+}
+
+int getGPIOValue(NameFunction* ptr){
+
+    char buff[64]; 
+    strcpy(buff, ptr->uri);
+    char* subString = strtok(buff,"/"); // find the first /
+    char* subString2 = strtok(NULL,"/");       // find the second /
+    if (subString2 == NULL)
+        return -1;
+    char* subString3 = strtok(NULL,"/");       // find the second /
+    if (subString3 == NULL)
+        return -1;
+    else{    
+        printf("Got GPIO value %s\n", subString3);
+        return atoi(subString3);
+    }
+}
+
+void returnGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin){
+    
+    char buf[64];
+    int gpio_value = (int)gpio_get(gpio_pin);
+
+    if (buffer){
+        // Output JSON very simply
+        printf("Returning GPIO status %d", gpio_pin);
+        int len = sprintf(buf, "{\"%i\" : %d}", gpio_pin, gpio_value);
+        printJSONHeaders(buffer, len);
+        strcat(buffer, buf);
+    }
+}
+
+void gpio(NameFunction* ptr, char* buffer, int count){
+    int GPIOpin = getGPIO(ptr);
+    int value = getGPIOValue(ptr);
+    if(value != -1){
+        printf("Setting GPIO value %d, %d\n", GPIOpin, value);
+        setGPIO(ptr, buffer, count, GPIOpin, value);
+    }
+    else{
+        printf("Returning GPIO value %d\n", GPIOpin);
+        returnGPIO(ptr, buffer, count, GPIOpin);
+    }
 }
 
 // each one more than required for terminating null
@@ -316,6 +328,7 @@ void readLogWithDate(NameFunction* ptr, char* buffer, int count){
 }
 
 // this is pseudo-REST as it is all via GET - POST is not implemented.
+// : values are simply indicators of position, they are not used in parsing
 
 NameFunction routes[] =
 { 

@@ -179,7 +179,7 @@
                         checkbox.checked = json.led;
                 }).catch(err => console.error(err));
             };
-            function checkState(){
+            function checkLEDState(){
                 var checkbox = document.getElementById('LED');
                 if (checkbox.checked == true){
                     fetch('http://192.168.50.212/led/1')
@@ -187,6 +187,27 @@
                 }
                 else{
                     fetch('http://192.168.50.212/led/0')
+                    .catch(err => console.error(err));
+                }
+            };
+            function setGPIOstate(){
+                var checkbox = document.getElementById('GPIO');
+                fetch('http://192.168.50.212/gpio/18')
+                    .then(res => res.json())
+                    .then(json => {
+                        console.log(json);
+                        console.log(json["18"]);
+                        checkbox.checked = json["18"];
+                }).catch(err => console.error(err));
+            };
+            function checkGPIOState(){
+                var checkbox = document.getElementById('GPIO');
+                if (checkbox.checked == true){
+                    fetch('http://192.168.50.212/gpio/18/1')
+                    .catch(err => console.error(err));
+                }
+                else{
+                    fetch('http://192.168.50.212/gpio/18/0')
                     .catch(err => console.error(err));
                 }
             };
@@ -291,6 +312,7 @@
                 setTimeIntervalHistory();
                 getTemperature();
                 setLEDstate();
+                setGPIOstate();
                 resize();
                 drawChart();
                 updateData(initialValues);
@@ -315,8 +337,12 @@
             <div class="f-card c1 c1-md c-1-lg">
                 <h3>Controls</h2>
                 <label onClick>
-                    <input type="checkbox" id="LED" name="LED" onclick="checkState()" />
+                    <input type="checkbox" id="LED" name="LED" onclick="checkLEDState()" />
                     LED
+                </label>
+                <label onClick>
+                    <input type="checkbox" id="GPIO" name="GPIO" onclick="checkGPIOState()" />
+                    GPIO 18
                 </label>
             </div>  
         </div>
