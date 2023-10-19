@@ -98,7 +98,8 @@ void returnLED(NameFunction* ptr, char* buffer, int count){
     }
 }
 
-void setLED(NameFunction* ptr, char* buffer, int count, int value){
+void setLED(NameFunction* ptr, char* buffer, int count){
+    int value = getSetValue(ptr);
     printf("Setting LED value %d", value);
     char buf[64];
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, value);
@@ -106,16 +107,6 @@ void setLED(NameFunction* ptr, char* buffer, int count, int value){
         int len = sprintf(buf, "%s", "{\"success\" : true}");
         printJSONHeaders(buffer, len); // print out headers with no body
         strcat(buffer, buf);
-    }
-}
-
-void led(NameFunction* ptr, char* buffer, int count){
-    int i = getSetValue(ptr);
-    if(i != -1){
-        setLED(ptr, buffer, count, i);
-    }
-    else{
-        returnLED(ptr, buffer, count);
     }
 }
 
@@ -330,19 +321,42 @@ void readLogWithDate(NameFunction* ptr, char* buffer, int count){
 // this is pseudo-REST as it is all via GET - POST is not implemented.
 // : values are simply indicators of position, they are not used in parsing
 
+void success(NameFunction* ptr, char* buffer, int count){
+    printf("Success\n");
+    char buf[64];
+    int len = sprintf(buf, "%s", "{\"success\" : true}");
+    printJSONHeaders(buffer, len); // print out headers with no body
+    strcat(buffer, buf);
+}
+
+void failure(NameFunction* ptr, char* buffer, int count){
+    printf("Failure\n");
+    char buf[64];
+    int len = sprintf(buf, "%s", "{\"success\" : false}");
+    printJSONHeaders(buffer, len); // print out headers with no body
+    strcat(buffer, buf);
+}
+
+
 NameFunction routes[] =
 { 
-    { "/temp", (void*) *returnTemperature },
-    { "/temperature", (void*) *returnTemperature },
-    { "/led/:value", (void*) *led }, 
-    { "/gpio/:gpio/:value", (void*) *gpio },  
-    { "/readlog/:date", (void*) *readLogWithDate },
+    { "/temp", (void*) *returnTemperature, HTTP_GET },
+    { "/temperature", (void*) *returnTemperature, HTTP_GET },
+    { "/led", (void*) *returnLED, HTTP_GET }, 
+    { "/led/:value", (void*) *setLED, HTTP_POST }, 
+    { "/gpio/:gpio", (void*) *gpio, HTTP_GET },  
+    { "/gpio/:gpio/:value", (void*) *gpio, HTTP_POST }, 
+    { "/readlog/:date", (void*) *readLogWithDate, HTTP_GET },
+    { "/failure", (void*) *failure, HTTP_GET || HTTP_POST},
+    { "/success", (void*) *success, HTTP_GET || HTTP_POST},
 };
 
-NameFunction* parseExact(const char* name){
+NameFunction* parseExact(const char* name, int routeType){
     printf("Parsing exact route : %s\n", name);
     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
     {
+        if (ptr->routeType != routeType)
+            continue;
         if(!strcmp(ptr->routeName, name)) {
             return ptr;
         }
@@ -350,30 +364,40 @@ NameFunction* parseExact(const char* name){
     return 0;
 }
 
-NameFunction* parsePartialMatch(const char* name){
+NameFunction* parsePartialMatch(const char* name, int routeType){
+
+    char buf[64];
+    
     printf("Parsing partial route : %s\n", name);
     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
     {
-        for (int routeLen = strlen(name); routeLen > 0; routeLen --){
-            if(!strncmp(ptr->routeName, name, routeLen)) {
-                if (routeLen > 1){ // don't return a match on '/'
-                    return ptr;
-                }
-            }
+        printf("route type %i\n", routeType);
+        if (ptr->routeType != routeType)
+            continue;
+        if(!strstr(ptr->routeName, ":")) // can't partial match if no variable
+            continue;
+        strcpy(buf, ptr->routeName);
+        char* tok = strtok(buf, "/"); // start of route
+        if(!strncmp(tok, name+1, strlen(tok))) { // first token must match
+            printf("Token: %s\n", tok);
+            return ptr;
         }
     }
     return 0;
 }
 
-NameFunction* isRoute(const char* name){
+NameFunction* isRoute(const char* name, int routeType){
 
+    // if (routeType != HTTP_GET && routeType != HTTP_POST)
+    //     routeType = HTTP_GET; // default to GET
     printf("Routing : %s\n", name);
-    NameFunction* ptr = parseExact(name);
+    NameFunction* ptr = parseExact(name, routeType);
 
     if (!ptr){ // always return an exact match if found otherwise look for partial
-        ptr = parsePartialMatch(name);
+        ptr = parsePartialMatch(name, routeType);
     }
     if (ptr){
+        printf("Confirmed route %s for uri %s\n", ptr->routeName, ptr->uri);
         ptr->uri = malloc(strlen(name));
         strcpy(ptr->uri, name);
     }

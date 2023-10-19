@@ -51,7 +51,7 @@ int fs_open_custom(struct fs_file *file, const char *name){
     void (*fun_ptr)(char*);
 
     // check if it is a route first, if not it must be a custom file
-    fun_ptr = (void (*)(char *))isRoute(name);
+    fun_ptr = (void (*)(char *))isRoute(name, HTTP_GET);
 
     if(!fun_ptr)
     {
@@ -91,7 +91,7 @@ int fs_open_custom(struct fs_file *file, const char *name){
         }
     }
     else{ // is a route
-        printf("%s is a defined route\n", name);
+        printf("%s is a route\n", name);
         // flag as custom and a route
         file->data = NULL;
         file->index = 0;
