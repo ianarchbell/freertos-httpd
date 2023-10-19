@@ -26,8 +26,7 @@
 static void *current_connection;
 static NameFunction* current_nameFunction;
 static void *valid_connection;
-static void *uri;
-
+static char* POST_uri;
 
 /**
  * 
@@ -74,23 +73,18 @@ getTokenValue(struct pbuf *p, char* token)
 {
   char tokenBuf[MAX_TOKEN_SIZE];
 
-  printf("in getTokenValue for %s\n", token);
   strcpy(tokenBuf, token);
   strcat(tokenBuf, "=");
   u16_t token_index = pbuf_memfind(p, tokenBuf, strlen(tokenBuf), 0);
   if (token_index != 0xFFFF) {
-    printf("we have token\n");
     u16_t token_value_index = token_index + strlen(tokenBuf);
     u16_t len_token_value = 0;
 
     /* may not be the only value */
     u16_t end_token_value_index = pbuf_memfind(p, "&", 1, token_value_index);
     if (end_token_value_index != 0xFFFF) {
-      printf("& found\n");
       len_token_value = end_token_value_index - token_value_index;
     } else {
-       printf("& not found\n");
-       printf("ptot = %d, token_value_index = %d\n",p->tot_len, token_value_index);
        len_token_value = p->tot_len - token_value_index; 
     }
   
@@ -99,97 +93,70 @@ getTokenValue(struct pbuf *p, char* token)
       char buf_token_value[TOKEN_VALUE_BUFSIZE];
       char *token_value = (char *)pbuf_get_contiguous(p, buf_token_value, len_token_value, len_token_value, token_value_index);
       token_value[len_token_value] = 0;
-      printf("Token: %s, value: %s\n", token, token_value);
       return token_value;
     }
   }
   return NULL;
 }
 
-
-
 err_t
 httpd_post_receive_data(void *connection, struct pbuf *p)
 {  
   char namedRoute[URI_BUFSIZE] = "";
-  uri = malloc(URI_BUFSIZE);
-  char* token_ptr, token_ptr1, token_value;
+  POST_uri = malloc(URI_BUFSIZE);
+  char* prefix_ptr;
+  char* token_ptr;
+  char* token_ptr1; 
+  char* token_value;
 
-  printf("in httpd_post_receive\n");
-  printf("current_nameFunction->routeName : %s\n", current_nameFunction->routeName);
   if (current_connection == connection) {
 
     // construct router route from parms
     strcpy(namedRoute, current_nameFunction->routeName);
 
     // first token - either the complete route or prefix to ':'
-    char* token_ptr = strtok(namedRoute, ":");
-    if(!token_ptr){
-      printf("no parms on POST route\n");
-      strcpy(uri, current_nameFunction->routeName);
+    prefix_ptr = strtok(namedRoute, ":");
+    if(!prefix_ptr){
+      strcpy(POST_uri, current_nameFunction->routeName);
       return ERR_OK;
     }
     else{
-      // get the token after the ':' prior to either '/' or end of route
-      strcpy(uri, token_ptr);
-      printf("token_ptr: %s\n", token_ptr);
+      // Copy the prefix to the uri
+      strcpy(POST_uri, prefix_ptr);
+      POST_uri[strlen(prefix_ptr)-1] = 0x00;
+       // take 1 off the length for the '/' - we add one for every variable found
+      token_ptr = prefix_ptr;
     }
-      char* token_ptr =  strtok(NULL, "/");
-      printf("token_ptr: %s\n", token_ptr);
-      while(!token_ptr){
-        if(!token_ptr){
-          token_ptr = token_ptr1;
-          char* tokenValue = getTokenValue(p, token_ptr);
-          printf("tokenValue: %s\n", tokenValue);
-          strcat(uri, tokenValue);  
-        }
-        else{
-          printf("uri_now: %s\n", uri);
-          char* tokenValue = getTokenValue(p, token_ptr);
-          strcat(uri,tokenValue);
-        } 
-      }
+    while(token_ptr){
+      token_ptr1 =  strtok(NULL, "/");
+      printf("token_ptr1: %s\n", token_ptr1); 
+      if(token_ptr1)
+        token_ptr = token_ptr1;
+      printf("token_ptr: %s\n", token_ptr);  
+      token_value = getTokenValue(p, token_ptr);
+      printf("token_value: %s\n", token_value);  
+      strcat(POST_uri, "/");
+      strcat(POST_uri, token_value);
+      token_ptr = strtok(NULL, ":");  
     }
-    printf("uri: %s, token_ptr: %s, token_ptr1: %s, tokenValue: %s\n", uri, token_ptr, token_ptr1, token_value);
-
-
-    printf("In current connection: %.*s\n",p->tot_len, p->payload); 
-    char* value = getTokenValue(p, "value");
-    if (value)
-      printf("Token name: %s, value %s\n", "value", value);
-    value = getTokenValue(p, "gpio");
-    if (value)
-      printf("Token name: %s, value %s\n", "gpio", value);  
-
-          // if (!strcmp(key, "lwip") && !strcmp(value, "post")) {
-          //   /* key and valueword are correct, create a "session" */
-          //   valid_connection = connection;
-          //   printf("key: %s, value: %s\n", key, value);
-          // }
-        //}
-      //}
-    /* not returning ERR_OK aborts the connection, so return ERR_OK unless the
-       conenction is unknown */
-    }
-    return ERR_OK;
+  }
+  return ERR_OK;
 } 
 
 void
 httpd_post_finished(void *connection, char *response_uri, u16_t response_uri_len)
 {
-  /* default page is "login failed" */
-  printf("in httpd_post_finished\n");
+  /* default page is "JSON failure" */
   snprintf(response_uri, response_uri_len, "/failure");
   if (current_connection == connection) {
-    if (uri) {
-      printf("uri: %s\n", uri);
-      NameFunction* routeFunction = isRoute(uri, HTTP_POST);
+    if (POST_uri) {
+      printf("POSTing route uri: %s\n", POST_uri);
+      NameFunction* routeFunction = isRoute(POST_uri, HTTP_POST);
       if(routeFunction){
-        route(current_nameFunction, uri, strlen(uri));
+        route(current_nameFunction, POST_uri, strlen(POST_uri));
         snprintf(response_uri, response_uri_len, "/success");
-
-        free(uri);
       }
+      free(POST_uri);
     }
   }
   current_connection = NULL;
