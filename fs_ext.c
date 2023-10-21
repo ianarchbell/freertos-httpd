@@ -91,7 +91,7 @@ int fs_open_custom(struct fs_file *file, const char *name){
         }
     }
     else{ // is a route
-        printf("%s is a route\n", name);
+        //printf("%s is a route\n", name);
         // flag as custom and a route
         file->data = NULL;
         file->index = 0;

@@ -108,7 +108,9 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
   char* token_ptr1; 
   char* token_value;
 
+  printf("Handling POST receieve\n");
   if (current_connection == connection) {
+     printf("In current connection\n");
 
       POST_uri = pvPortMalloc(URI_BUFSIZE);
 
@@ -130,16 +132,19 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
     }
     while(token_ptr){
       token_ptr1 =  strtok(NULL, "/");
-      printf("token_ptr1: %s\n", token_ptr1); 
+      //printf("token_ptr1: %s\n", token_ptr1); 
       if(token_ptr1)
         token_ptr = token_ptr1;
-      printf("token_ptr: %s\n", token_ptr);  
+      //printf("token_ptr: %s\n", token_ptr);  
       token_value = getTokenValue(p, token_ptr);
-      printf("token_value: %s\n", token_value);  
+      //åprintf("token_value: %s\n", token_value);  
       strcat(POST_uri, "/");
       strcat(POST_uri, token_value);
       token_ptr = strtok(NULL, ":");  
     }
+  }
+  else{
+    printf("Not in current connection\n");
   }
   if(p)
     pbuf_free(p);

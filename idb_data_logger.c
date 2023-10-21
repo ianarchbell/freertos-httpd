@@ -65,7 +65,6 @@ static bool print_header(FF_FILE *pxFile) {
 static FF_FILE *open_file() {
 
     //print_date();
-    printf("Logging\n");
 
     datetime_t t = {0, 0, 0, 0, 0, 0, 0};
     rtc_get_datetime(&t);

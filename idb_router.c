@@ -76,13 +76,13 @@ int getSetValue(NameFunction* ptr){
     if (subString2 == NULL)
         return -1;
     else{
-        printf("Got LED uri value %s", subString2);
+        //printf("Got LED uri value %s", subString2);
         return atoi(subString2);
     }
 }
 
 void returnLED(NameFunction* ptr, char* buffer, int count){
-    printf("Getting LED value");
+    //printf("Getting LED value");
     char buf[64];
     int led = cyw43_arch_gpio_get(CYW43_WL_GPIO_LED_PIN);
     if (buffer){
@@ -129,7 +129,7 @@ int getGPIO(NameFunction* ptr){
     if (subString2 == NULL)
         return -1;
     else{
-        printf("Got GPIO number %s\n", subString2);
+        //printf("Got GPIO number %s\n", subString2);
         return atoi(subString2);
     }
 }
@@ -146,7 +146,7 @@ int getGPIOValue(NameFunction* ptr){
     if (subString3 == NULL)
         return -1;
     else{    
-        printf("Got GPIO value %s\n", subString3);
+        //printf("Got GPIO value %s\n", subString3);
         return atoi(subString3);
     }
 }
@@ -158,7 +158,7 @@ void returnGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin){
 
     if (buffer){
         // Output JSON very simply
-        printf("Returning GPIO status %d", gpio_pin);
+        //printf("Returning GPIO status %d", gpio_pin);
         int len = sprintf(buf, "{\"%i\" : %d}", gpio_pin, gpio_value);
         printJSONHeaders(buffer, len);
         strcat(buffer, buf);
@@ -169,11 +169,11 @@ void gpio(NameFunction* ptr, char* buffer, int count){
     int GPIOpin = getGPIO(ptr);
     int value = getGPIOValue(ptr);
     if(value != -1){
-        printf("Setting GPIO value %d, %d\n", GPIOpin, value);
+        //printf("Setting GPIO value %d, %d\n", GPIOpin, value);
         setGPIO(ptr, buffer, count, GPIOpin, value);
     }
     else{
-        printf("Returning GPIO value %d\n", GPIOpin);
+        //printf("Returning GPIO value %d\n", GPIOpin);
         returnGPIO(ptr, buffer, count, GPIOpin);
     }
 }
@@ -208,16 +208,9 @@ void getLogDate(NameFunction* ptr, char* buffer){
     strcpy(buffer, subString);
 }
 
-void readLog(char* name, char* jsonBuffer, int count){
-
-    printf("Buffer length: %d, name: %s\n", count, name);
+FF_FILE* openLogFile(char* name){
 
     char buffer[128];
-    FF_FILE *pxFile;
-
-    Measurement readings[MAXREADINGS];
-
-    Measurement reading;
 
     FF_Disk_t *pxDisk = NULL;
 
@@ -230,48 +223,61 @@ void readLog(char* name, char* jsonBuffer, int count){
     if (-1 == mkdirhier(buffer) &&
         stdioGET_ERRNO() != pdFREERTOS_ERRNO_EEXIST) {
         printf("failed to set directory");
-        return;
+        return NULL;
     }
 
     printf("Reading log\n");
 
     snprintf(buffer + n, sizeof buffer - n, "/log_data.csv");
-    //configASSERT(nw);
-    pxFile = ff_fopen(buffer, "r");
-    printf("Opening log file: %s\n", buffer);
+    printf("Opening log file: %s\n", buffer);  
+    return ff_fopen(buffer, "r");
+}
 
-    // need to check if mounted
+void readLog(char* name, char* jsonBuffer, int count){
+
+    Measurement readings[MAXREADINGS];
+    Measurement reading;
+    char buffer[128];
+
+    printf("Buffer length: %d, name: %s\n", count, name);
+
+    FF_FILE *pxFile = openLogFile(name);
+
+    // need to check if mounted?
     if (pxFile){
+
+        printf("log file open\n");
         int i = 0;
-        char* ptr = jsonBuffer;
+
         sprintf(jsonBuffer, "[");
         int len = 1;
         int bufferPos = len;
-        //ff_fgets(buffer, sizeof(buffer), pxFile); // ignore header
 
+        // seek to the end of the file
         ff_fseek(pxFile, 0, FF_SEEK_END);
         int pos = ff_ftell(pxFile);
         /* Don't write each char on output.txt, just search for '\n' */
 
         int recCount = 0;
-
+        // seek backwards for max number of records that will fit in the buffer
         while (pos) {
-            ff_fseek(pxFile, --pos, FF_SEEK_SET); /* seek from begin */
+            ff_fseek(pxFile, --pos, FF_SEEK_SET);
             if (ff_fgetc(pxFile) == '\n') {
                 if (recCount++ == count/MAXLEN) 
                     break;
             }
         }
 
+        printf("Reading log file records\n");
+        // now positioned at last n records
         while(ff_fgets(buffer, sizeof(buffer), pxFile)){
             if (i >= MAXREADINGS)
                 break;
             getData(buffer, &reading);
             memcpy(&readings[i], &reading, sizeof(reading));
-            printf("Count: %d\n", count);
-            printf("Reading [%d] : Date: %s, Temperature: %s\n", i, readings[i].date_time, readings[i].temperature );  
-            if (bufferPos+MAXLEN < count){          
-                len = snprintf(ptr+bufferPos, count-bufferPos, "{\"date\": %s, \"temperature\": %s, \"temperature units\": \"%c\"}, ", 
+            //printf("Reading [%d] : Date: %s, Temperature: %s\n", i, readings[i].date_time, readings[i].temperature );  
+            if (bufferPos < count){          
+                len = snprintf(jsonBuffer+bufferPos, count-bufferPos, "{\"date\": %s, \"temperature\": %s, \"temperature units\": \"%c\"}, ", 
                                                 readings[i].date_time, readings[i].temperature, 'F');
                 bufferPos += len;
                 i++;
@@ -347,7 +353,7 @@ NameFunction routes[] =
 };
 
 NameFunction* parseExact(const char* name, int routeType){
-    printf("Parsing exact route : %s\n", name);
+    //printf("Parsing exact route : %s\n", name);
     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
     {
         if (ptr->routeType != routeType)
@@ -363,7 +369,7 @@ NameFunction* parsePartialMatch(const char* name, int routeType){
 
     char buf[64];
     
-    printf("Parsing partial route : %s\n", name);
+    //printf("Parsing partial route : %s\n", name);
     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
     {
         if (ptr->routeType != routeType)
@@ -373,7 +379,7 @@ NameFunction* parsePartialMatch(const char* name, int routeType){
         strcpy(buf, ptr->routeName);
         char* tok = strtok(buf, "/"); // start of route
         if(!strncmp(tok, name+1, strlen(tok))) { // first token must match
-            printf("Token: %s\n", tok);
+            //printf("Token: %s\n", tok);
             return ptr;
         }
     }
@@ -384,7 +390,7 @@ NameFunction* isRoute(const char* name, int routeType){
 
     // if (routeType != HTTP_GET && routeType != HTTP_POST)
     //     routeType = HTTP_GET; // default to GET
-    printf("Checking route : %s, Type: routeType\n", name);
+    //printf("Checking route : %s, Type: routeType\n", name);
     NameFunction* ptr = parseExact(name, routeType);
 
     if (!ptr){ // always return an exact match if found otherwise look for partial
@@ -396,20 +402,20 @@ NameFunction* isRoute(const char* name, int routeType){
         strcpy(ptr->uri, name);
     }
     if (ptr)
-        printf("Is a route\n");
+        printf("In route table\n");
     else
-        printf("Not a route\n");    
+        printf("Not in route table\n");    
     return ptr;  
 }
 
 void route(NameFunction* ptr, char* buffer, int count){
     if (buffer){       
-        printf("Routing %\n", buffer);
+        //printf("Routing %\n", buffer);
         ptr->routeFunction(ptr, buffer, count);
-        printf("routed uri: %s\n", ptr->uri);
+        //printf("routed uri: %s\n", ptr->uri);
         if (ptr->uri)
             vPortFree(ptr->uri);
-        printf("after routeFunction\n");
+        //printf("after routeFunction\n");
     }
     else{
         printf("no buffer\n");
