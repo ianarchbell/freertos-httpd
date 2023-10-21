@@ -146,14 +146,14 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
     }
     else{
         NameFunction* fun_ptr = file->pextension;
-        printf("fs_read : execute route %s, uri: %s\n", fun_ptr->routeName, fun_ptr->uri);
+        printf("fs_read_custom : executing route %s, uri: %s\n", fun_ptr->routeName, fun_ptr->uri);
         if (fun_ptr){
-            printf("calling route handler\n");
+            //printf("calling route handler\n");
             route(fun_ptr, buffer, count);
         }
-        printf("custom read route, buffer %s\n", buffer);
+        printf("fs_read_custom : route response:\n%s\n", buffer);
         br = strlen(buffer);
-        printf("bytes read: %i\n", br);
+        printf("fs_read_custom : route response length: %i\n", br);
         file->len = br; // only reads one record at the moment *** IAN
         file->index += br;
     }

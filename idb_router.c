@@ -95,7 +95,7 @@ void returnLED(NameFunction* ptr, char* buffer, int count){
 
 void setLED(NameFunction* ptr, char* buffer, int count){
     int value = getSetValue(ptr);
-    printf("Setting LED value %d", value);
+    //printf("Setting LED value %d", value);
     char buf[64];
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, value);
     if (buffer){    
@@ -213,7 +213,7 @@ FF_FILE* openLogFile(char* name){
     char buffer[128];
 
     FF_Disk_t *pxDisk = NULL;
-
+    
     if (!mount(&pxDisk, DEVICENAME, MOUNTPOINT)){
         printf("Failed to mount %s as %s", DEVICENAME, MOUNTPOINT);
     }
@@ -225,11 +225,11 @@ FF_FILE* openLogFile(char* name){
         printf("failed to set directory");
         return NULL;
     }
-
-    printf("Reading log\n");
+    printf("Mounted disk to read log file\n");
+    //printf("Reading log\n");
 
     snprintf(buffer + n, sizeof buffer - n, "/log_data.csv");
-    printf("Opening log file: %s\n", buffer);  
+    //printf("Opening log file: %s\n", buffer);  
     return ff_fopen(buffer, "r");
 }
 
@@ -239,14 +239,14 @@ void readLog(char* name, char* jsonBuffer, int count){
     Measurement reading;
     char buffer[128];
 
-    printf("Buffer length: %d, name: %s\n", count, name);
+    //printf("Buffer length: %d, name: %s\n", count, name);
 
     FF_FILE *pxFile = openLogFile(name);
 
     // need to check if mounted?
     if (pxFile){
 
-        printf("log file open\n");
+        printf("Log file open\n");
         int i = 0;
 
         sprintf(jsonBuffer, "[");
@@ -301,7 +301,7 @@ void readLogWithDate(NameFunction* ptr, char* buffer, int count){
         char* buf = pvPortMalloc(JSONBUFFSIZE);  
         if (buf){
             getLogDate(ptr, logDate);
-            printf("log date: %s\n", logDate);
+            printf("Log date: %s\n", logDate);
             readLog(logDate, buf, JSONBUFFSIZE);
             printf("Response from readLog: %s\n", buf);
             int len = strlen(buf);

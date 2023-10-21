@@ -41,10 +41,10 @@
 #define MAIN_TASK_PRIORITY 2
 
 void setRTC(NTP_T* npt_t, int status, time_t *result){
-    printf("ntp callback received\n");
+    printf("NTP callback received\n");
     if (status == 0 && result) {
         struct tm *utc = gmtime(result);
-        printf("got ntp response: %02d/%02d/%04d %02d:%02d:%02d\n", utc->tm_mday, utc->tm_mon + 1, utc->tm_year + 1900,
+        printf("NTP response: %02d/%02d/%04d %02d:%02d:%02d\n", utc->tm_mday, utc->tm_mon + 1, utc->tm_year + 1900,
                 utc->tm_hour, utc->tm_min, utc->tm_sec);
 
         // Start on Friday 5th of June 2020 15:45:00
@@ -103,7 +103,7 @@ void main_task(__unused void *params) {
     httpd_init();
 
     bool rc = logger_init();
-    printf("data logger initialized: %i\n", rc);
+    printf("Initializing data logger: %s\n", rc ? "true" : "false");
 
     while(true) {
         // not much to do as LED is in another task, and we're using RAW (callback) lwIP API

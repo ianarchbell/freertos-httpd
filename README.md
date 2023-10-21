@@ -7,7 +7,7 @@ SD Card file access as well as JSON support for background fetch to enable Singl
 
 The aim was not to reinvent the wheel and as far as possible use the LWIP distributed HTTPD application. However, this implementation only supported "packed files", that is converted and stored in the application itself. This was believed to be overly restrictive and with the availability of FreeRTOS LabProject FAT filesystem for SD Cards and in particular the already working port of that to the Raspberry Pi Pico by CarlK.
 
-This is not intended to be production code. It enables a simple demonstration of serving files located on an sd card and json from a Pico. The web demo (dashboard.html) shows real-time update of the Pico core temperature with a background fetch as well as the last 10 updates rom a log file. You'll need to update the date in the route in idb_router.c (/readlog/) to pull the right date data. It also shows how to turn the led and on and off and get the state using routing/json. It does support both GET and POST, so while not supporting PUT or DELETE you can use it in a RESTfull way.
+This is not intended to be production code - there is no security. It enables a simple demonstration of serving files located on an sd card and json from a Pico. The web demo (dashboard.html) shows real-time update of the Pico core temperature with a background fetch as well as the last 10 updates rom a log file. You'll need to update the date in the route in idb_router.c (/readlog/) to pull the right date data. It also shows how to turn the led and on and off and get the state using routing/json. It does support both GET and POST, so while not supporting PUT or DELETE you can use it in a RESTfull way.
 
 The router table is a simple function table. This is an example:
 
