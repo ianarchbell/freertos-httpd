@@ -3,7 +3,7 @@
 ## Aim
 
 This project was driven by the need for a simple webserver application running on FreeRTOS that supports 
-SD Card file access as well as JSON support for background fetch to enable Single Page Applications. 
+SD Card file access as well as JSON support for background fetch to enable Single Page Applications. So this is a modern webserver, you could be using say a React front-end and a json backend without any need for CGI using full page reloads or clunky SSI includes.
 
 The aim was not to reinvent the wheel and as far as possible use the LWIP distributed HTTPD application. However, this implementation only supported "packed files", that is converted and stored in the application itself. This was believed to be overly restrictive and with the availability of FreeRTOS LabProject FAT filesystem for SD Cards and in particular the already working port of that to the Raspberry Pi Pico by CarlK.
 
