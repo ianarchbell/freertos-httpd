@@ -11,20 +11,18 @@ This is not intended to be production code - there is no security. It enables a 
 
 The router table is a simple function table. This is an example:
 
-...
-NameFunction routes[] =
-{ 
-    { "/temp", (void*) *returnTemperature, HTTP_GET },
-    { "/temperature", (void*) *returnTemperature, HTTP_GET },
-    { "/led", (void*) *returnLED, HTTP_GET }, 
-    { "/led/:value", (void*) *setLED, HTTP_POST }, 
-    { "/gpio/:gpio", (void*) *gpio, HTTP_GET },  
-    { "/gpio/:gpio/:value", (void*) *gpio, HTTP_POST }, 
-    { "/readlog/:date", (void*) *readLogWithDate, HTTP_GET },
-    { "/failure", (void*) *failure, HTTP_GET || HTTP_POST},
-    { "/success", (void*) *success, HTTP_GET || HTTP_POST},
-};
-...
+    NameFunction routes[] =
+    { 
+        { "/temp", (void*) *returnTemperature, HTTP_GET },
+        { "/temperature", (void*) *returnTemperature, HTTP_GET },
+        { "/led", (void*) *returnLED, HTTP_GET }, 
+        { "/led/:value", (void*) *setLED, HTTP_POST }, 
+        { "/gpio/:gpio", (void*) *gpio, HTTP_GET },  
+        { "/gpio/:gpio/:value", (void*) *gpio, HTTP_POST }, 
+        { "/readlog/:date", (void*) *readLogWithDate, HTTP_GET },
+        { "/failure", (void*) *failure, HTTP_GET || HTTP_POST},
+        { "/success", (void*) *success, HTTP_GET || HTTP_POST},
+    };
 
 Note that the routing table uses :... variables in a similar way to express, but it's a very simple implementation without wildcards or regex etc. The POST implementation expects a urlencoded body. That body is used to create a route similar to the ones above, then that route is internally dispatched. 
 
