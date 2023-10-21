@@ -88,8 +88,8 @@ Hardware
 
 Software Installed
 
-1. PICO-SDK (with LWIP stack and HTTP app) from Github
-2. FreeRTOS-Kernel from Github
+1. PICO-SDK (with LWIP stack and HTTP app) from Github git clone https://github.com/RaspberryPi/pico-sdk --recurse-submodules
+2. FreeRTOS-Kernel from Github (SMP branch) git clone: -b SMP https://github.com/FreeRTOS/FreeRTOS-Kernel.git
 3. ARM toolchain: arm-none-eabi (see: https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads)
 4. CMake
 5. make
