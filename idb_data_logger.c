@@ -12,7 +12,7 @@ CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 */
 
-#include "FreeRTOS.h" /* Must come first. */
+#include <FreeRTOS.h> /* Must come first. */
 //
 #include <stdbool.h>
 #include <stdio.h>
@@ -35,7 +35,7 @@ specific language governing permissions and limitations under the License.
 
 #include "hardware/rtc.h"
 
-#include "adc.h"
+#include "idb_hardware.h"
 
 #define DEVICENAME "sd0"
 #define MOUNTPOINT "/sd0"
@@ -156,7 +156,7 @@ static void write_log_data(TimerHandle_t taskTimer) {
     //TRACE_PRINTF("Temperature: %.1f °F\n", (double)Tc);
     int nw = snprintf(buf + n, sizeof buf - n, "%.3g\n", (double)Tc);
     configASSERT(0 < nw && nw < (int)sizeof buf);
-
+    printf("logging core temperature %s", buf);
     if (ff_fprintf(pxFile, "%s", buf) < 0) {
         FAIL("ff_fprintf");
        return;

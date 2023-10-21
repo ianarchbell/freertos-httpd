@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-#include "pico/stdlib.h"
+#include <pico/stdlib.h>
 #include "pico/cyw43_arch.h"
 
 #include "lwip/ip4_addr.h"
@@ -14,14 +14,16 @@
 
 #include "ff_headers.h"
 
-#include "picow_ntp_client.h"
+#include "idb_ntp_client.h"
 
 #include "pico/util/datetime.h"
 #include "hardware/rtc.h"
 
-#include "data_logger.h"
+#include "idb_data_logger.h"
 
-#include "picow_ntp_client.h"
+#include "idb_ntp_client.h"
+
+#include "idb_runtime_stats.h"
 
 //Check these definitions where added from the makefile
 #ifndef WIFI_SSID
@@ -106,6 +108,7 @@ void main_task(__unused void *params) {
     while(true) {
         // not much to do as LED is in another task, and we're using RAW (callback) lwIP API
         vTaskDelay(1000);
+        // runTimeStats();
     }
     print_date();
 

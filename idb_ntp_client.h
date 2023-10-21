@@ -1,5 +1,5 @@
-#ifndef PICOW_NTP_CLIENT_H
-#define PICOW_NTP_CLIENT_H
+#ifndef IDB_NTP_CLIENT_H
+#define IDB_NTP_CLIENT_H
 
 
 #include "lwip/udp.h"

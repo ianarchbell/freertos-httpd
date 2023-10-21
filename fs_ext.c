@@ -28,7 +28,7 @@
 
 
 #include "hw_config.h"
-#include "router.h"
+#include "idb_router.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -136,7 +136,7 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
             if (pxFile == NULL)
                 panic("custom read error no SD file pointer\n");
             br = ff_fread( buffer + offset, 1, count, pxFile);
-            printf("buffer: '%.*s'\n", count, buffer);
+            //printf("buffer: '%.*s'\n", count, buffer);
             br += offset;
             file->index += br;
         }

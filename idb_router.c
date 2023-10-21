@@ -1,7 +1,11 @@
+/**
+ * Handle uri routing for both GET and POST 
+*/
+
 #include <stdio.h>
 #include <string.h>
 
-#include "hardware/adc.h"
+#include <hardware/adc.h>
 #include <stdlib.h>
 #include "pico/cyw43_arch.h"
 
@@ -9,9 +13,9 @@
 #include "ff_utils.h"
 #include "ff_stdio.h"
 
-#include "router.h"
+#include "idb_router.h"
 
-#include "adc.h"
+#include "idb_hardware.h"
 
 #define DEVICENAME "sd0"
 #define MOUNTPOINT "/sd0"
@@ -19,25 +23,16 @@
 /* Choose 'C' for Celsius or 'F' for Fahrenheit. */
 #define TEMPERATURE_UNITS 'F'
 
-/* References for this implementation:
- * raspberry-pi-pico-c-sdk.pdf, Section '4.1.1. hardware_adc'
- * pico-examples/adc/adc_console/adc_console.c */
+/**
+ * 
+ * 
+ * Calls getCoreTemperature in adc.c to get the 
+ * 
+ * 
+*/
 float read_onboard_temperature(const char unit) {
 
-
     float temp = getCoreTemperature(unit);
-    /* Initialize hardware AD converter, enable onboard temperature sensor and
-     *   select its channel (do this once for efficiency, but beware that this
-     *   is a global operation). */
-    // adc_init();
-    // adc_set_temp_sensor_enabled(true);
-    // adc_select_input(4);
-    
-    // /* 12-bit conversion, assume max value == ADC_VREF == 3.3 V */
-    // const float conversionFactor = 3.3f / (1 << 12);
-
-    // float adc = (float)adc_read() * conversionFactor;
-    // float tempC = 27.0f - (adc - 0.706f) / 0.001721f;
 
     if (unit == 'C') {
         return temp;
@@ -295,9 +290,9 @@ void readLogWithDate(NameFunction* ptr, char* buffer, int count){
     #define MINBUFSIZE 64
     #define JSONBUFFSIZE 1024
     
-    char* logDate = malloc(MINBUFSIZE);
+    char* logDate = pvPortMalloc(MINBUFSIZE);
      if (logDate){
-        char* buf = malloc(JSONBUFFSIZE);  
+        char* buf = pvPortMalloc(JSONBUFFSIZE);  
         if (buf){
             getLogDate(ptr, logDate);
             printf("log date: %s\n", logDate);
@@ -306,12 +301,12 @@ void readLogWithDate(NameFunction* ptr, char* buffer, int count){
             int len = strlen(buf);
             int hdrLen = printJSONHeaders(buffer, len);
             strcat(buffer+hdrLen, buf);
-            free(buf);
+            vPortFree(buf);
         }
         else{
             printf("Failed to allocate log buffer\n");
         }
-        free(logDate);
+        vPortFree(logDate);
      }
      else{
         printf("Failed to allocate logDate\n");
@@ -371,7 +366,6 @@ NameFunction* parsePartialMatch(const char* name, int routeType){
     printf("Parsing partial route : %s\n", name);
     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
     {
-        printf("route type %i\n", routeType);
         if (ptr->routeType != routeType)
             continue;
         if(!strstr(ptr->routeName, ":")) // can't partial match if no variable
@@ -390,7 +384,7 @@ NameFunction* isRoute(const char* name, int routeType){
 
     // if (routeType != HTTP_GET && routeType != HTTP_POST)
     //     routeType = HTTP_GET; // default to GET
-    printf("Routing : %s\n", name);
+    printf("Checking route : %s, Type: routeType\n", name);
     NameFunction* ptr = parseExact(name, routeType);
 
     if (!ptr){ // always return an exact match if found otherwise look for partial
@@ -398,9 +392,13 @@ NameFunction* isRoute(const char* name, int routeType){
     }
     if (ptr){
         printf("Confirmed route %s for uri %s\n", ptr->routeName, ptr->uri);
-        ptr->uri = malloc(strlen(name));
+        ptr->uri = pvPortMalloc(strlen(name));
         strcpy(ptr->uri, name);
     }
+    if (ptr)
+        printf("Is a route\n");
+    else
+        printf("Not a route\n");    
     return ptr;  
 }
 
@@ -410,8 +408,8 @@ void route(NameFunction* ptr, char* buffer, int count){
         ptr->routeFunction(ptr, buffer, count);
         printf("routed uri: %s\n", ptr->uri);
         if (ptr->uri)
-            free(ptr->uri);
-        //printf("after routeFunction\n");
+            vPortFree(ptr->uri);
+        printf("after routeFunction\n");
     }
     else{
         printf("no buffer\n");

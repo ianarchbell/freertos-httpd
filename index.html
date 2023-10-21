@@ -180,15 +180,17 @@
                 }).catch(err => console.error(err));
             };
             function checkLEDState(){
-                var checkbox = document.getElementById('LED');
-                if (checkbox.checked == true){
-                    fetch('http://192.168.50.212/led/1')
-                    .catch(err => console.error(err));
-                }
-                else{
-                    fetch('http://192.168.50.212/led/0')
-                    .catch(err => console.error(err));
-                }
+                var checkbox_state = +(document.getElementById('LED').checked);
+                fetch('http://192.168.50.212/led', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                    },
+                    body: new URLSearchParams({
+                        'value': checkbox_state
+                    }),
+                    cache: 'no-store'
+                })
             };
             function setGPIOstate(){
                 var checkbox = document.getElementById('GPIO');
@@ -201,15 +203,19 @@
                 }).catch(err => console.error(err));
             };
             function checkGPIOState(){
-                var checkbox = document.getElementById('GPIO');
-                if (checkbox.checked == true){
-                    fetch('http://192.168.50.212/gpio/18/1')
-                    .catch(err => console.error(err));
-                }
-                else{
-                    fetch('http://192.168.50.212/gpio/18/0')
-                    .catch(err => console.error(err));
-                }
+                var checkbox_state = +(document.getElementById('GPIO').checked);
+                fetch('http://192.168.50.212/gpio', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                    },
+                    body: new URLSearchParams({
+                        'gpio': 18,
+                        'value': checkbox_state
+                    }),
+                    cache: 'no-store'
+                })
+                .catch(err => console.error(err));
             };
             // initial values
             const initialValues = [{"date": "2023-10-10T19:11:56Z", "temperature": 90.3, "temperature units": "F"}, {"date": "2023-10-10T19:12:57Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:13:56Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:16:06Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:17:05Z", "temperature": 92.7, "temperature units": "F"}, {"date": "2023-10-10T19:18:05Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:19:05Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:21:12Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:22:12Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:23:12Z", "temperature": 92.2, "temperature units": "F"}];

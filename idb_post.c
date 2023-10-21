@@ -3,7 +3,7 @@
  * Handles HTTP POST
  * 
 */
-
+#include <FreeRTOS.h>
 #include "lwip/opt.h"
 
 #include "lwip/apps/httpd.h"
@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "router.h"
+#include "idb_router.h"
 
 #if !LWIP_HTTPD_SUPPORT_POST
 #error This needs LWIP_HTTPD_SUPPORT_POST
@@ -103,13 +103,14 @@ err_t
 httpd_post_receive_data(void *connection, struct pbuf *p)
 {  
   char namedRoute[URI_BUFSIZE] = "";
-  POST_uri = malloc(URI_BUFSIZE);
   char* prefix_ptr;
   char* token_ptr;
   char* token_ptr1; 
   char* token_value;
 
   if (current_connection == connection) {
+
+      POST_uri = pvPortMalloc(URI_BUFSIZE);
 
     // construct router route from parms
     strcpy(namedRoute, current_nameFunction->routeName);
@@ -140,6 +141,9 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
       token_ptr = strtok(NULL, ":");  
     }
   }
+  if(p)
+    pbuf_free(p);
+
   return ERR_OK;
 } 
 
@@ -156,7 +160,8 @@ httpd_post_finished(void *connection, char *response_uri, u16_t response_uri_len
         route(current_nameFunction, POST_uri, strlen(POST_uri));
         snprintf(response_uri, response_uri_len, "/success");
       }
-      free(POST_uri);
+      vPortFree(POST_uri);
+      POST_uri = NULL;
     }
   }
   current_connection = NULL;

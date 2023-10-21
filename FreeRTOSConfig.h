@@ -28,6 +28,7 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
+//#define NDEBUG
 /*-----------------------------------------------------------
  * Application specific definitions.
  *
@@ -41,6 +42,8 @@
  *----------------------------------------------------------*/
 
 #include "my_debug.h"
+
+//#define NDEBUG
 
 #ifndef portINLINE
 #  define portINLINE __inline

@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
+#include <FreeRTOS.h>
 #include <string.h>
 #include <time.h>
 
@@ -14,7 +14,7 @@
 #include "lwip/pbuf.h"
 #include "lwip/udp.h"
 
-#include "picow_ntp_client.h"
+#include "idb_ntp_client.h"
 
 void (*Callback)(NTP_T* npt, int status, time_t *result); // callback to receive time information
 
@@ -106,15 +106,16 @@ static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_ad
 
 // Perform initialisation
 static NTP_T* ntp_init(void) {
-    NTP_T *state = calloc(1, sizeof(NTP_T));
+    NTP_T *state = pvPortMalloc(sizeof(NTP_T));
     if (!state) {
         printf("failed to allocate state\n");
         return NULL;
     }
+    memset(state, 0x00, sizeof(NTP_T));
     state->ntp_pcb = udp_new_ip_type(IPADDR_TYPE_ANY);
     if (!state->ntp_pcb) {
         printf("failed to create pcb\n");
-        free(state);
+        vPortFree(state);
         return NULL;
     }
     udp_recv(state->ntp_pcb, ntp_recv, state);
@@ -159,6 +160,6 @@ void getNTPtime(void* callback) {
         // work you might be doing.
         sleep_ms(1000);
 #endif
-
-    free(state);
+    if(state)
+        vPortFree(state);
 }
