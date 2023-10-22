@@ -43,8 +43,11 @@ if (NOT DEFINED ENV{WIFI_PASSWORD})
 endif()
 
 add_executable(idb
-        idb_main.c fs_ext.c hw_config.c idb_router.c idb_ntp_client.c idb_data_logger.c idb_hardware.c idb_post.c idb_runtime_stats.c
+        idb_main.c fs_ext.c hw_config.c idb_router.c idb_ntp_client.c idb_data_logger.c 
+                idb_hardware.c idb_post.c idb_runtime_stats.c #idb_http_client.c 
+                ${CMAKE_CURRENT_LIST_DIR}/tiny-json/tiny-json.c
         )
+        
 target_compile_definitions(idb PRIVATE
         WIFI_SSID=\"$ENV{WIFI_SSID}\"
         WIFI_PASSWORD=\"$ENV{WIFI_PASSWORD}\"
@@ -53,6 +56,7 @@ target_compile_definitions(idb PRIVATE
         )
 target_include_directories(idb PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/tiny-json
         ${PICO_SDK_PATH}/include     
         ${FAT_PATH}/FreeRTOS+FAT+CLI/Lab-Project-FreeRTOS-FAT/include
         ${FAT_PATH}/FreeRTOS+FAT+CLI/portable/RP2040
@@ -69,7 +73,15 @@ target_link_libraries(idb
         hardware_adc
         FreeRTOS+FAT+CLI
         FreeRTOS-Kernel-Heap4 # FreeRTOS kernel and dynamic heap   
-        )           
+        #pico_http_client
+        ) 
+          
+# Ignore warnings from lwip code
+set_source_files_properties(
+        ${PICO_LWIP_PATH}/src/apps/altcp_tls/altcp_tls_mbedtls.c
+        PROPERTIES
+        COMPILE_OPTIONS "-Wno-unused-result"
+        )                
 
 pico_add_extra_outputs(idb)
 

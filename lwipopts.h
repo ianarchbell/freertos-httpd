@@ -1,6 +1,31 @@
 #ifndef _LWIPOPTS_H
 #define _LWIPOPTS_H
 
+
+//****
+
+// #define LWIP_ALTCP 1
+
+// // If you don't want to use TLS (just a http request) you can avoid linking to mbedtls and remove the following
+// #define LWIP_ALTCP_TLS           1
+// #define LWIP_ALTCP_TLS_MBEDTLS   1
+
+// Note bug in lwip with LWIP_ALTCP and LWIP_DEBUG
+// https://savannah.nongnu.org/bugs/index.php?62159
+//#define LWIP_DEBUG 1
+// #undef LWIP_DEBUG
+// #define ALTCP_MBEDTLS_DEBUG  LWIP_DBG_ON
+
+
+
+
+//***************
+
+
+
+
+
+
 // Generally you would define your own explicit list of lwIP options
 // (see https://www.nongnu.org/lwip/2_1_x/group__lwip__opts.html)
 //
@@ -53,7 +78,7 @@
 #define LWIP_ETHERNET               1
 #define LWIP_ICMP                   1
 #define LWIP_RAW                    1
-#define TCP_WND                     (8 * TCP_MSS)
+#define TCP_WND                     (16 * TCP_MSS) // was 8
 #define TCP_MSS                     1460
 #define TCP_SND_BUF                 (8 * TCP_MSS)
 #define TCP_SND_QUEUELEN            ((4 * (TCP_SND_BUF) + (TCP_MSS - 1)) / (TCP_MSS))

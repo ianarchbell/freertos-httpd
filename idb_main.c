@@ -25,6 +25,10 @@
 
 #include "idb_runtime_stats.h"
 
+#include "idb_http_client.h"
+
+#include "tiny-json.h"
+
 //Check these definitions where added from the makefile
 #ifndef WIFI_SSID
 #error "WIFI_SSID not defined"
@@ -77,6 +81,25 @@ void print_date(){
     printf("\r%s      ", datetime_str);
 }
 
+
+void getLocalTime(char* buffer){
+    //printf(buffer);
+    enum { MAX_FIELDS = 16 };
+    json_t pool[ MAX_FIELDS ];
+    //printf("Before first json\n");
+    json_t const* parent = json_create( buffer, pool, MAX_FIELDS );
+    if ( parent == NULL ) 
+        printf ("EXIT_FAILURE\n");
+    //printf("Before second json\n");
+    json_t const* abbrevProperty = json_getProperty( parent, "abbreviation" );
+    if ( abbrevProperty == NULL ) 
+        printf("json failure\n");
+    //printf("Before last json\n");    
+    char const* abbreviation = json_getValue( abbrevProperty );
+    printf("Local Time Zone: %s\n", abbreviation);
+    
+}
+
 void main_task(__unused void *params) {
     
 
@@ -98,7 +121,12 @@ void main_task(__unused void *params) {
         printf("Wi-Fi failed to start, retrying");
     }
 
-    getNTPtime(&setRTC);
+    getNTPtime(&setRTC); // get UTC time
+
+    #define HOST "worldtimeapi.org"
+    #define URL_REQUEST "/api/ip"
+
+    //getHTTPClientResponse(HOST, URL_REQUEST, &getLocalTime); // get local time 
 
     httpd_init();
 
