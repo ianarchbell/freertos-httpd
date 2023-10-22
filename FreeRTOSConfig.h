@@ -49,6 +49,7 @@
 #  define portINLINE __inline
 #endif
 
+#define configTASK_NOTIFICATION_ARRAY_ENTRIES 2
 
 /* Scheduler Related */
 #define configUSE_PREEMPTION                    1
