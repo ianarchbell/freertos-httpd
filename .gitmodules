@@ -1,3 +1,6 @@
 [submodule "FreeRTOS-FAT-CLI-for-RPi-Pico"]
 	path = FreeRTOS-FAT-CLI-for-RPi-Pico
 	url = https://github.com/ianarchbell/FreeRTOS-FAT-CLI-for-RPi-Pico.git
+[submodule "tiny-json"]
+	path = tiny-json
+	url = https://github.com/rafagafe/tiny-json.git
