@@ -108,7 +108,7 @@ static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_ad
 static NTP_T* ntp_init(void) {
     NTP_T *state = pvPortMalloc(sizeof(NTP_T));
     if (!state) {
-        printf("Failed to allocate state\n");
+        panic("Failed to allocate state\n");
         return NULL;
     }
     memset(state, 0x00, sizeof(NTP_T));
@@ -116,6 +116,7 @@ static NTP_T* ntp_init(void) {
     if (!state->ntp_pcb) {
         printf("Failed to create pcb\n");
         vPortFree(state);
+        state = 0;
         return NULL;
     }
     udp_recv(state->ntp_pcb, ntp_recv, state);
@@ -160,6 +161,8 @@ void getNTPtime(void* callback) {
         // work you might be doing.
         sleep_ms(1000);
 #endif
-    if(state)
+    if(state){
         vPortFree(state);
+        state = 0;
+    }
 }

@@ -25,7 +25,7 @@
 
 #include "fs.h"
 
-
+#include "idb_router.h"
 
 #include "hw_config.h"
 #include "idb_router.h"
@@ -47,11 +47,8 @@ static bool init = false;
 #define MOUNTPOINT "/sd0"
 
 int fs_open_custom(struct fs_file *file, const char *name){
-
-    void (*fun_ptr)(char*);
-
     // check if it is a route first, if not it must be a custom file
-    fun_ptr = (void (*)(char *))isRoute(name, HTTP_GET);
+    NameFunction* fun_ptr = isRoute(name, HTTP_GET);
 
     if(!fun_ptr)
     {
@@ -99,6 +96,11 @@ int fs_open_custom(struct fs_file *file, const char *name){
         file->flags |= FS_FILE_FLAGS_CUSTOM;
         file->flags |= FS_FILE_FLAGS_ROUTE; // not used in fs.c
         file->pextension = fun_ptr; // store the handler for read
+        fun_ptr->uri = pvPortMalloc(strlen(name));
+        if(fun_ptr->uri)
+            strcpy(fun_ptr->uri, name);
+        else
+            panic("Failed to allocate uri\n");    
         file->len = MAX_ROUTE_LEN; // max len
         //printf("open: %s is a route\n", name);
     }
@@ -149,7 +151,7 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
         printf("fs_read_custom : executing route %s, uri: %s\n", fun_ptr->routeName, fun_ptr->uri);
         if (fun_ptr){
             //printf("calling route handler\n");
-            route(fun_ptr, buffer, count);
+            route(fun_ptr, buffer, count, fun_ptr->uri);
         }
         printf("fs_read_custom : route response:\n%s\n", buffer);
         br = strlen(buffer);
@@ -166,6 +168,9 @@ void fs_close_custom(struct fs_file *file){
         ff_fclose(file->pextension);
     }
     else{
+        NameFunction* fun_ptr = file->pextension;
+        if (fun_ptr->uri)
+            vPortFree(fun_ptr->uri);
         file->pextension = 0;
     }
     //printf("closed custom file\n");

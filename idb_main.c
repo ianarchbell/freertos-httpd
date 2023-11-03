@@ -11,6 +11,7 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include <timers.h>
 
 #include "ff_headers.h"
 
@@ -29,20 +30,33 @@
 
 #include "tiny-json.h"
 
-//Check these definitions where added from the makefile
-#ifndef WIFI_SSID
-#error "WIFI_SSID not defined"
-#endif
-#ifndef WIFI_PASSWORD
-#error "WIFI_PASSWORD not defined"
-#endif
+#include "idb_ping.h"
 
-#ifndef RUN_FREERTOS_ON_CORE
-#define RUN_FREERTOS_ON_CORE 0
-#endif
+
+#include "idb_router.h"
+
 
 //#define MAIN_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
-#define MAIN_TASK_PRIORITY 2
+#define MAIN_TASK_PRIORITY 5
+
+volatile TimerHandle_t checkup_timer;
+
+bool runCheck = false;
+
+#define CHECKUP_INTERVAL_MS 45 * 1000 // once a minute ish
+
+static TaskHandle_t th;
+
+#define PING_ADDR "192.168.50.1"
+ip_addr_t ping_addr;
+
+#define CYW43_LINK_DOWN         (0)     ///< link is down
+#define CYW43_LINK_JOIN         (1)     ///< Connected to wifi
+#define CYW43_LINK_NOIP         (2)     ///< Connected to wifi, but no IP address
+#define CYW43_LINK_UP           (3)     ///< Connected to wifi with an IP address
+#define CYW43_LINK_FAIL         (-1)    ///< Connection failed
+#define CYW43_LINK_NONET        (-2)    ///< No matching SSID found (could be out of range, or down)
+#define CYW43_LINK_BADAUTH      (-3)    ///< Authenticatation failure
 
 void setRTC(NTP_T* npt_t, int status, time_t *result){
     printf("NTP callback received\n");
@@ -100,10 +114,9 @@ void getLocalTime(char* buffer){
     
 }
 
-void main_task(__unused void *params) {
-    
+void start_wifi(){
 
-    if (cyw43_arch_init()) {
+        if (cyw43_arch_init()) {
         printf("failed to initialise\n");
         return;
     }
@@ -115,11 +128,66 @@ void main_task(__unused void *params) {
 
     for(int i = 0;i<4;i++){
         if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_MIXED_PSK, 30000) == 0) {
-            printf("\nReady, running httpd at %s\n", ip4addr_ntoa(netif_ip4_addr(netif_list)));
+            printf("\nReady, preparing to run httpd at %s\n", ip4addr_ntoa(netif_ip4_addr(netif_list)));
             break;
         }
-        printf("Wi-Fi failed to start, retrying");
+        printf("Wi-Fi failed to start, retrying\n");
     }
+}
+
+void do_ping(){
+    
+    ipaddr_aton(PING_ADDR, &ping_addr);
+    ping_init(&ping_addr);
+    // what happens?
+}
+
+void testRoute(){
+    
+    char buf[1024]; 
+    char buffer[] = "/readlog/2023-10-17";
+    NameFunction* fun_ptr = isRoute(buffer, HTTP_GET);
+    if (fun_ptr)
+        route(fun_ptr, buf, sizeof buf, buffer);
+
+}
+
+void checkup(){
+    runCheck = true;
+}
+
+void doCheckup(){
+    printf("Routine checkup\n");
+    //runTimeStats();
+    int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
+    printf("Link status: %d\n", status);
+    do_ping();
+    //testRoute();
+    runCheck = false;
+    //cyw43_arch_deinit();
+    //start_wifi();
+}
+
+void create_checkup_timer() {
+    // Create a repeating (parameter 3) timer
+    checkup_timer = xTimerCreate("CHECKUP TIMER",
+                                pdMS_TO_TICKS(CHECKUP_INTERVAL_MS),
+                                pdTRUE,
+                                (void*) 0,
+                                checkup
+                                );
+    
+    // Start the repeating timer
+    if (checkup_timer != NULL){
+        xTimerStart(checkup_timer, 0);
+    } 
+}
+
+void main_task(__unused void *params) {
+    
+    start_wifi();
+
+    create_checkup_timer();
 
     getNTPtime(&setRTC); // get UTC time
 
@@ -133,10 +201,12 @@ void main_task(__unused void *params) {
     bool rc = logger_init();
     printf("Initializing data logger: %s\n", rc ? "true" : "false");
 
+    runTimeStats();
+
     while(true) {
-        // not much to do as LED is in another task, and we're using RAW (callback) lwIP API
-        vTaskDelay(1000);
-        // runTimeStats();
+        if(runCheck)
+            doCheckup();
+        vTaskDelay(100); // allow other tasks in
     }
     print_date();
 
@@ -145,7 +215,7 @@ void main_task(__unused void *params) {
 
 void vLaunch( void) {
     TaskHandle_t task;
-    xTaskCreate(main_task, "TestMainThread", 4096, NULL, MAIN_TASK_PRIORITY, &task);
+    xTaskCreate(main_task, "MainThread", 8192, NULL, MAIN_TASK_PRIORITY, &task);
 
 #if NO_SYS && configUSE_CORE_AFFINITY && configNUM_CORES > 1
     // we must bind the main task to one core (well at least while the init is called)
@@ -157,6 +227,26 @@ void vLaunch( void) {
     /* Start the tasks and timer running. */
     vTaskStartScheduler();
 }
+
+//#ifndef NDEBUG
+// Note: All pvPortMallocs should be checked individually,
+// but we don't expect any to fail,
+// so this can help flag problems in Debug builds.
+void vApplicationMallocFailedHook(void) {
+    printf("\nMalloc failed! Task: %s\n", pcTaskGetName(NULL));
+    //__disable_irq(); /* Disable global interrupts. */
+    vTaskSuspendAll();
+    //__BKPT(5);
+}
+//#endif
+
+// void vApplicationStackOverflowHook( TaskHandle_t xTask,
+//                                     char *pcTaskName ){
+//     printf("Task stack overflow: %s\n", pcTaskName);
+//     vTaskSuspendAll();  
+//     //__BKPT(5);                                 
+// }
+
 
 int main( void )
 {

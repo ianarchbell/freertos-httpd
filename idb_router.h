@@ -7,7 +7,7 @@
 typedef struct NameFunction_struct
 {
     const char* routeName;
-    void (*routeFunction)(void*, char*, int);
+    void (*routeFunction)(void*, char*, int, char*);
     int routeType;
     char* uri;
 }
@@ -17,7 +17,7 @@ NameFunction;
 #define TEMPERATURE_UNITS 'F'
 
 NameFunction* isRoute(const char* name, int routeType);
-void route(NameFunction* ptr, char* buffer, int count);
+void route(NameFunction* ptr, char* buffer, int count, char*);
 
 #endif /* ROUTER_H */
 

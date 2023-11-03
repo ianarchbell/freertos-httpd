@@ -20,13 +20,13 @@
 #endif
 
 #define TOKEN_VALUE_BUFSIZE 16
-#define URI_BUFSIZE 256
+#define URI_BUFSIZE 64
 #define MAX_TOKEN_SIZE 64
 
 static void *current_connection;
 static NameFunction* current_nameFunction;
 static void *valid_connection;
-static char* POST_uri;
+static char* POST_uri = NULL;
 
 /**
  * 
@@ -48,10 +48,15 @@ httpd_post_begin(void *connection, const char *uri, const char *http_request,
   LWIP_UNUSED_ARG(http_request_len);
   LWIP_UNUSED_ARG(content_len);
   LWIP_UNUSED_ARG(post_auto_wnd);
+
   printf("POST received with uri %s\n", uri);
   current_nameFunction = isRoute(uri, HTTP_POST);
+  if(current_nameFunction){
+    POST_uri = pvPortMalloc(URI_BUFSIZE); // allocate a URI buffer (freed on finish)
+    if (!POST_uri)
+      panic("Unable to allocate POST_uri\n");
+  }
   if (current_nameFunction) {
-    printf("after memcmp\n");
     if (current_connection != connection) {
       current_connection = connection;
       valid_connection = NULL;
@@ -109,10 +114,8 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
   char* token_value;
 
   printf("Handling POST receieve\n");
-  if (current_connection == connection) {
+  if (current_connection == connection && POST_uri != NULL) {
      printf("In current connection\n");
-
-      POST_uri = pvPortMalloc(URI_BUFSIZE);
 
     // construct router route from parms
     strcpy(namedRoute, current_nameFunction->routeName);
@@ -144,7 +147,7 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
     }
   }
   else{
-    printf("Not in current connection\n");
+    printf("Not in current connection or no uri\n");
   }
   if(p)
     pbuf_free(p);
@@ -160,9 +163,9 @@ httpd_post_finished(void *connection, char *response_uri, u16_t response_uri_len
   if (current_connection == connection) {
     if (POST_uri) {
       printf("POSTing route uri: %s\n", POST_uri);
-      NameFunction* routeFunction = isRoute(POST_uri, HTTP_POST);
-      if(routeFunction){
-        route(current_nameFunction, POST_uri, strlen(POST_uri));
+      //NameFunction* routeFunction = isRoute(POST_uri, HTTP_POST);
+      if(current_nameFunction){
+        route(current_nameFunction, POST_uri, strlen(POST_uri), POST_uri);
         snprintf(response_uri, response_uri_len, "/success");
       }
       vPortFree(POST_uri);

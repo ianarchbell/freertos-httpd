@@ -7,6 +7,7 @@ include(pico_sdk_import.cmake)
 include(FreeRTOS_Kernel_import.cmake)
 
 set(PICO_LWIP_APP_INCLUDE_PATH "${PICO_SDK_PATH}/lib/lwip/src/include/lwip/apps")
+set(PICO_LWIP_CONTRIB_APP_INCLUDE_PATH "${PICO_SDK_PATH}/lib/lwip/contrib/")
 
 set(FATPATH "${CMAKE_CURRENT_LIST_DIR}/FreeRTOS-FAT-CLI-for-RPi-Pico")
 
@@ -43,8 +44,12 @@ if (NOT DEFINED ENV{WIFI_PASSWORD})
 endif()
 
 add_executable(idb
-        idb_main.c fs_ext.c hw_config.c idb_router.c idb_ntp_client.c idb_data_logger.c 
-                idb_hardware.c idb_post.c idb_runtime_stats.c #idb_http_client.c 
+        idb_main.c fs_ext.c hw_config.c idb_router.c idb_ntp_client.c idb_data_logger.c
+                idb_hardware.c idb_post.c 
+                idb_runtime_stats.c 
+                idb_ping.c
+                #idb_http_client.c 
+                #${PICO_LWIP_CONTRIB_PATH}/apps/ping/ping.c
                 ${CMAKE_CURRENT_LIST_DIR}/tiny-json/tiny-json.c
         )
         
@@ -53,6 +58,7 @@ target_compile_definitions(idb PRIVATE
         WIFI_PASSWORD=\"$ENV{WIFI_PASSWORD}\"
         NO_SYS=0            # don't want NO_SYS (generally this would be in your lwipopts.h)
         LWIP_SOCKET=1       # we need the socket API (generally this would be in your lwipopts.h)
+        PING_USE_SOCKETS=1
         )
 target_include_directories(idb PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
@@ -65,6 +71,7 @@ target_include_directories(idb PRIVATE
         ${FREERTOS_KERNEL_PATH}/include
         ${FREERTOS_PATH}/portable/GCC/ARM_CM0
         ${CMAKE_CURRENT_LIST_DIR} 
+        ${PICO_LWIP_CONTRIB_PATH}/apps/ping
         )       
 target_link_libraries(idb        
         pico_stdlib
@@ -73,6 +80,7 @@ target_link_libraries(idb
         hardware_adc
         FreeRTOS+FAT+CLI
         FreeRTOS-Kernel-Heap4 # FreeRTOS kernel and dynamic heap   
+        pico_lwip_iperf
         #pico_http_client
         ) 
           

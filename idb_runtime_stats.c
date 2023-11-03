@@ -39,7 +39,7 @@ void runTimeStats(   ){
       // Free array
       vPortFree( pxTaskStatusArray );
    } else {
-	   printf("Failed to allocate space for stats\n");
+	   panic("Failed to allocate space for stats\n");
    }
 
    //Get heap allocation information

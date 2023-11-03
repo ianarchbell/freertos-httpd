@@ -188,12 +188,12 @@ void task_logger(void* unused_arg) {
 }
 
 bool logger_init() {
-    static StackType_t xStack[768];
+    static StackType_t xStack[2048+512];
     static StaticTask_t xTaskBuffer;
     if (!th) {
         th = xTaskCreateStatic(
             task_logger, "LoggerTask", sizeof xStack / sizeof xStack[0], 0,
-            1, /* Priority at which the task is created. */
+            2, /* Priority at which the task is created. */
             xStack, &xTaskBuffer);
     }
     configASSERT(th);

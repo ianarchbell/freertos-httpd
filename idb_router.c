@@ -67,10 +67,10 @@ void returnTemperature(NameFunction* ptr, char* buffer, int count){
     }
 }
 
-int getSetValue(NameFunction* ptr){
+int getSetValue(char* uri){
 
     char buff[64]; 
-    strcpy(buff, ptr->uri);
+    strcpy(buff, uri);
     char* subString = strtok(buff,"/"); // find the first /
     char* subString2 = strtok(NULL,"/");       // find the second /
     if (subString2 == NULL)
@@ -93,8 +93,8 @@ void returnLED(NameFunction* ptr, char* buffer, int count){
     }
 }
 
-void setLED(NameFunction* ptr, char* buffer, int count){
-    int value = getSetValue(ptr);
+void setLED(NameFunction* ptr, char* buffer, int count, char* uri){
+    int value = getSetValue(uri);
     //printf("Setting LED value %d", value);
     char buf[64];
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, value);
@@ -120,10 +120,10 @@ void setGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin, int gpio_
     printf("exiting setGPIO\n");
 }
 
-int getGPIO(NameFunction* ptr){
+int getGPIO(char* uri){
 
     char buff[64]; 
-    strcpy(buff, ptr->uri);
+    strcpy(buff,uri);
     char* subString = strtok(buff,"/"); // find the first /
     char* subString2 = strtok(NULL,"/");       // find the second /
     if (subString2 == NULL)
@@ -134,10 +134,10 @@ int getGPIO(NameFunction* ptr){
     }
 }
 
-int getGPIOValue(NameFunction* ptr){
+int getGPIOValue(char* uri){
 
     char buff[64]; 
-    strcpy(buff, ptr->uri);
+    strcpy(buff, uri);
     char* subString = strtok(buff,"/"); // find the first /
     char* subString2 = strtok(NULL,"/");       // find the second /
     if (subString2 == NULL)
@@ -165,9 +165,9 @@ void returnGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin){
     }
 }
 
-void gpio(NameFunction* ptr, char* buffer, int count){
-    int GPIOpin = getGPIO(ptr);
-    int value = getGPIOValue(ptr);
+void gpio(NameFunction* ptr, char* buffer, int count, char* uri){
+    int GPIOpin = getGPIO(uri);
+    int value = getGPIOValue(uri);
     if(value != -1){
         //printf("Setting GPIO value %d, %d\n", GPIOpin, value);
         setGPIO(ptr, buffer, count, GPIOpin, value);
@@ -196,10 +196,10 @@ void getData(char *buff, Measurement* reading){
     strncpy(reading->temperature, ptr, TEMPLEN);
 }
 
-void getLogDate(NameFunction* ptr, char* buffer){
+void getLogDate(char* uri, char* buffer){
 
     char buff[64]; 
-    strcpy(buff, ptr->uri);
+    strcpy(buff, uri);
 
     char* subString = strtok(buff,"/"); // find the first /
     subString = strtok(NULL,"/");   // find the second /
@@ -226,11 +226,12 @@ FF_FILE* openLogFile(char* name){
         return NULL;
     }
     printf("Mounted disk to read log file\n");
-    //printf("Reading log\n");
 
     snprintf(buffer + n, sizeof buffer - n, "/log_data.csv");
-    //printf("Opening log file: %s\n", buffer);  
-    return ff_fopen(buffer, "r");
+    printf("Opening log file: %s\n", buffer);  
+    FF_FILE* px = ff_fopen(buffer, "r");
+    printf("ff_open px: %d", px);
+    return px;
 }
 
 void readLog(char* name, char* jsonBuffer, int count){
@@ -292,7 +293,7 @@ void readLog(char* name, char* jsonBuffer, int count){
 
 }
 
-void readLogWithDate(NameFunction* ptr, char* buffer, int count){
+void readLogWithDate(NameFunction* ptr, char* buffer, int count, char* uri){
     #define MINBUFSIZE 64
     #define JSONBUFFSIZE 1024
     
@@ -300,29 +301,30 @@ void readLogWithDate(NameFunction* ptr, char* buffer, int count){
      if (logDate){
         char* buf = pvPortMalloc(JSONBUFFSIZE);  
         if (buf){
-            getLogDate(ptr, logDate);
-            printf("Log date: %s\n", logDate);
-            readLog(logDate, buf, JSONBUFFSIZE);
-            printf("Response from readLog: %s\n", buf);
+            getLogDate(uri, logDate);
+            //printf("Log date: %s\n", logDate);
+            readLog(logDate, buf, JSONBUFFSIZE-MINBUFSIZE); // should be enough for the header
+            //printf("Response from readLog: %s\n", buf);
             int len = strlen(buf);
             int hdrLen = printJSONHeaders(buffer, len);
             strcat(buffer+hdrLen, buf);
             vPortFree(buf);
         }
         else{
-            printf("Failed to allocate log buffer\n");
+            panic("Failed to allocate log buffer\n");
         }
         vPortFree(logDate);
      }
      else{
-        printf("Failed to allocate logDate\n");
+        panic("Failed to allocate logDate\n");
      }
 }
+
 
 // this is pseudo-REST as it is all via GET - POST is not implemented.
 // : values are simply indicators of position, they are not used in parsing
 
-void success(NameFunction* ptr, char* buffer, int count){
+void success(NameFunction* ptr, char* buffer, int count, char* uri){
     printf("Success\n");
     char buf[64];
     int len = sprintf(buf, "%s", "{\"success\" : true}");
@@ -330,7 +332,7 @@ void success(NameFunction* ptr, char* buffer, int count){
     strcat(buffer, buf);
 }
 
-void failure(NameFunction* ptr, char* buffer, int count){
+void failure(NameFunction* ptr, char* buffer, int count, char* uri){
     printf("Failure\n");
     char buf[64];
     int len = sprintf(buf, "%s", "{\"success\" : false}");
@@ -341,15 +343,15 @@ void failure(NameFunction* ptr, char* buffer, int count){
 
 NameFunction routes[] =
 { 
-    { "/temp", (void*) *returnTemperature, HTTP_GET },
-    { "/temperature", (void*) *returnTemperature, HTTP_GET },
-    { "/led", (void*) *returnLED, HTTP_GET }, 
-    { "/led/:value", (void*) *setLED, HTTP_POST }, 
-    { "/gpio/:gpio", (void*) *gpio, HTTP_GET },  
-    { "/gpio/:gpio/:value", (void*) *gpio, HTTP_POST }, 
-    { "/readlog/:date", (void*) *readLogWithDate, HTTP_GET },
-    { "/failure", (void*) *failure, HTTP_GET || HTTP_POST},
-    { "/success", (void*) *success, HTTP_GET || HTTP_POST},
+    { "/temp", (void*) *returnTemperature, HTTP_GET, NULL },
+    { "/temperature", (void*) *returnTemperature, HTTP_GET, NULL },
+    { "/led", (void*) *returnLED, HTTP_GET, NULL }, 
+    { "/led/:value", (void*) *setLED, HTTP_POST, NULL }, 
+    { "/gpio/:gpio", (void*) *gpio, HTTP_GET, NULL },  
+    { "/gpio/:gpio/:value", (void*) *gpio, HTTP_POST, NULL }, 
+    { "/readlog/:date", (void*) *readLogWithDate, HTTP_GET, NULL },
+    { "/failure", (void*) *failure, HTTP_GET || HTTP_POST, NULL},
+    { "/success", (void*) *success, HTTP_GET || HTTP_POST, NULL},
 };
 
 NameFunction* parseExact(const char* name, int routeType){
@@ -396,11 +398,18 @@ NameFunction* isRoute(const char* name, int routeType){
     if (!ptr){ // always return an exact match if found otherwise look for partial
         ptr = parsePartialMatch(name, routeType);
     }
-    if (ptr){
-        printf("Confirmed route %s for uri %s\n", ptr->routeName, ptr->uri);
-        ptr->uri = pvPortMalloc(strlen(name));
-        strcpy(ptr->uri, name);
-    }
+    // if (ptr){        
+    //     if (ptr->uri)
+    //         vPortFree(ptr->uri); // free the current uri
+    //     ptr->uri = pvPortMalloc(strlen(name));
+    //     if(ptr->uri){
+    //         strcpy(ptr->uri, name);
+    //         //printf("Confirmed route %s for uri %s\n", ptr->routeName, ptr->uri);
+    //     }
+    //     else{
+    //         panic("Failed to allocate uri for route\n");
+    //     }    
+    // }
     if (ptr)
         printf("In route table\n");
     else
@@ -408,17 +417,24 @@ NameFunction* isRoute(const char* name, int routeType){
     return ptr;  
 }
 
-void route(NameFunction* ptr, char* buffer, int count){
+void route(NameFunction* ptr, char* buffer, int count, char* uri){
     if (buffer){       
-        //printf("Routing %\n", buffer);
-        ptr->routeFunction(ptr, buffer, count);
-        //printf("routed uri: %s\n", ptr->uri);
-        if (ptr->uri)
-            vPortFree(ptr->uri);
-        //printf("after routeFunction\n");
+        printf("Routing %s\n", uri);
+        if (uri){ // we have to have a uri to process
+            ptr->routeFunction(ptr, buffer, count, uri);
+            
+            if (uri){
+                printf("routed uri: %s\n", uri);
+                // vPortFree(ptr->uri); // no need to free it is up to the caller
+                // ptr->uri = NULL;
+            }
+            else{
+                panic("no uri isRoute must be called prior to route\n");
+            }
+        }        //printf("after routeFunction\n");
     }
     else{
-        printf("no buffer\n");
+        printf("no buffer, can't route\n");
     }
     //printf("returned from route\n");
 }
