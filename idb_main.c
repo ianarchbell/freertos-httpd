@@ -232,12 +232,12 @@ void vLaunch( void) {
 // Note: All pvPortMallocs should be checked individually,
 // but we don't expect any to fail,
 // so this can help flag problems in Debug builds.
-void vApplicationMallocFailedHook(void) {
-    printf("\nMalloc failed! Task: %s\n", pcTaskGetName(NULL));
-    //__disable_irq(); /* Disable global interrupts. */
-    vTaskSuspendAll();
-    //__BKPT(5);
-}
+// void vApplicationMallocFailedHook(void) {
+//     printf("\nMalloc failed! Task: %s\n", pcTaskGetName(NULL));
+//     //__disable_irq(); /* Disable global interrupts. */
+//     vTaskSuspendAll();
+//     //__BKPT(5);
+// }
 //#endif
 
 // void vApplicationStackOverflowHook( TaskHandle_t xTask,

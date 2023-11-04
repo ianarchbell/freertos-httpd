@@ -70,7 +70,7 @@ void returnTemperature(NameFunction* ptr, char* buffer, int count){
 int getSetValue(char* uri){
 
     char buff[64]; 
-    strcpy(buff, uri);
+    strncpy(buff, uri, sizeof(buff));
     char* subString = strtok(buff,"/"); // find the first /
     char* subString2 = strtok(NULL,"/");       // find the second /
     if (subString2 == NULL)
@@ -123,7 +123,7 @@ void setGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin, int gpio_
 int getGPIO(char* uri){
 
     char buff[64]; 
-    strcpy(buff,uri);
+    strncpy(buff, uri, sizeof(buff));
     char* subString = strtok(buff,"/"); // find the first /
     char* subString2 = strtok(NULL,"/");       // find the second /
     if (subString2 == NULL)
@@ -137,7 +137,7 @@ int getGPIO(char* uri){
 int getGPIOValue(char* uri){
 
     char buff[64]; 
-    strcpy(buff, uri);
+    strncpy(buff, uri, sizeof(buff));
     char* subString = strtok(buff,"/"); // find the first /
     char* subString2 = strtok(NULL,"/");       // find the second /
     if (subString2 == NULL)
@@ -159,7 +159,7 @@ void returnGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin){
     if (buffer){
         // Output JSON very simply
         //printf("Returning GPIO status %d", gpio_pin);
-        int len = sprintf(buf, "{\"%i\" : %d}", gpio_pin, gpio_value);
+        int len = snprintf(buf, sizeof buf, "{\"%d\" : %d}", gpio_pin, gpio_value);
         printJSONHeaders(buffer, len);
         strcat(buffer, buf);
     }
@@ -199,7 +199,7 @@ void getData(char *buff, Measurement* reading){
 void getLogDate(char* uri, char* buffer){
 
     char buff[64]; 
-    strcpy(buff, uri);
+    strncpy(buff, uri, sizeof(buff));
 
     char* subString = strtok(buff,"/"); // find the first /
     subString = strtok(NULL,"/");   // find the second /
@@ -378,7 +378,7 @@ NameFunction* parsePartialMatch(const char* name, int routeType){
             continue;
         if(!strstr(ptr->routeName, ":")) // can't partial match if no variable
             continue;
-        strcpy(buf, ptr->routeName);
+        strncpy(buf, ptr->routeName, sizeof(buf));
         char* tok = strtok(buf, "/"); // start of route
         if(!strncmp(tok, name+1, strlen(tok))) { // first token must match
             //printf("Token: %s\n", tok);
