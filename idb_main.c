@@ -1,55 +1,53 @@
 /**
- * Copyright (c) 2022 Raspberry Pi (Trading) Ltd.
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
+ * 
+ * Create main task and run loop
+ * Initializes RTC from NTP
+ * Initializes data logger
+ * Creates checkup interval timer
+ * 
+*/
+
+/**
+ * Pico includes
+*/
 #include <pico/stdlib.h>
 #include "pico/cyw43_arch.h"
+#include "pico/util/datetime.h"
+#include "hardware/rtc.h"
 
 #include "lwip/ip4_addr.h"
 #include "lwip/apps/httpd.h"
 
+/**
+ * FreeRTOS includes
+*/
 #include "FreeRTOS.h"
 #include "task.h"
 #include <timers.h>
 
+/**
+ * Other library includes
+*/
 #include "ff_headers.h"
-
-#include "idb_ntp_client.h"
-
-#include "pico/util/datetime.h"
-#include "hardware/rtc.h"
-
-#include "idb_data_logger.h"
-
-#include "idb_ntp_client.h"
-
-#include "idb_runtime_stats.h"
-
-#include "idb_http_client.h"
-
 #include "tiny-json.h"
 
+/**
+ * 
+ * idb includes
+ * 
+*/
+#include "idb_config.h"
+#include "idb_ntp_client.h"
+#include "idb_data_logger.h"
+#include "idb_ntp_client.h"
+#include "idb_runtime_stats.h"
+#include "idb_http_client.h"
 #include "idb_ping.h"
-
-
 #include "idb_router.h"
 
-
-//#define MAIN_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
-#define MAIN_TASK_PRIORITY 5
-
-volatile TimerHandle_t checkup_timer;
-
-bool runCheck = false;
-
-#define CHECKUP_INTERVAL_MS 45 * 1000 // once a minute ish
-
-static TaskHandle_t th;
-
-#define PING_ADDR "192.168.50.1"
-ip_addr_t ping_addr;
-
+/**
+ * Link status codes
+*/
 #define CYW43_LINK_DOWN         (0)     ///< link is down
 #define CYW43_LINK_JOIN         (1)     ///< Connected to wifi
 #define CYW43_LINK_NOIP         (2)     ///< Connected to wifi, but no IP address
@@ -58,6 +56,33 @@ ip_addr_t ping_addr;
 #define CYW43_LINK_NONET        (-2)    ///< No matching SSID found (could be out of range, or down)
 #define CYW43_LINK_BADAUTH      (-3)    ///< Authenticatation failure
 
+/**
+ * Task configuration
+*/
+#define MAIN_TASK_PRIORITY 5
+#define CHECKUP IDB_CHECKUP
+#define CHECKUP_INTERVAL_MS IDB_CHECKUP_INTERVAL * 1000 // once a minute ish
+#define PING_ADDR IDB_PING_ADDR
+
+/**
+ * Used to get local time zone
+*/
+#define HOST "worldtimeapi.org"
+#define URL_REQUEST "/api/ip"
+
+/**
+ * Globals
+*/
+bool runCheck = false;
+ip_addr_t ping_addr;
+volatile TimerHandle_t checkup_timer;
+static TaskHandle_t th;
+
+/**
+ * 
+ * Callback to set the RTC using the result from NPT
+ * 
+*/
 void setRTC(NTP_T* npt_t, int status, time_t *result){
     printf("NTP callback received\n");
     if (status == 0 && result) {
@@ -86,6 +111,11 @@ void setRTC(NTP_T* npt_t, int status, time_t *result){
     }
 }
 
+/**
+ * 
+ * Helper to print date from the RTC
+ * 
+*/
 void print_date(){
     datetime_t t;
     char datetime_buf[256];
@@ -95,7 +125,11 @@ void print_date(){
     printf("\r%s      ", datetime_str);
 }
 
-
+/**
+ * 
+ * Helper to extract local time zone from a json buffer
+ * 
+*/
 void getLocalTime(char* buffer){
     //printf(buffer);
     enum { MAX_FIELDS = 16 };
@@ -114,6 +148,12 @@ void getLocalTime(char* buffer){
     
 }
 
+/**
+ * 
+ * Make the Wi-Fi connection in station mode
+ * Requires WIFI_SSID and WIFI_PASSWORD to be set in the environment
+ * 
+*/
 void start_wifi(){
 
         if (cyw43_arch_init()) {
@@ -135,13 +175,22 @@ void start_wifi(){
     }
 }
 
+/**
+ * 
+ * Can be used to validate Wi-FI connection to the router
+ * 
+*/
 void do_ping(){
     
     ipaddr_aton(PING_ADDR, &ping_addr);
     ping_init(&ping_addr);
-    // what happens?
 }
 
+/**
+ * 
+ * Test of a route without using HTTTP
+ * 
+*/
 void testRoute(){
     
     char buf[1024]; 
@@ -152,20 +201,22 @@ void testRoute(){
 
 }
 
+#if CHECKUP
 void checkup(){
     runCheck = true;
 }
 
 void doCheckup(){
-    printf("Routine checkup\n");
-    //runTimeStats();
-    int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
-    printf("Link status: %d\n", status);
-    do_ping();
-    //testRoute();
-    runCheck = false;
-    //cyw43_arch_deinit();
-    //start_wifi();
+    
+        printf("Routine checkup\n");
+        //runTimeStats();
+        int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
+        printf("Link status: %d\n", status);
+        //do_ping();
+        //testRoute();
+        runCheck = false;
+        //cyw43_arch_deinit();
+        //start_wifi();  
 }
 
 void create_checkup_timer() {
@@ -182,19 +233,23 @@ void create_checkup_timer() {
         xTimerStart(checkup_timer, 0);
     } 
 }
+#endif //CHECKUP
 
+/**
+ * 
+ * Main task starts Wi-Fi, creates checkup timer, sets the RTC from NPT, initializes the HTTP server
+ * and lists the running tasks stats, then enters task loop. If checkup required, perform it in the loop
+ * 
+*/
 void main_task(__unused void *params) {
     
     start_wifi();
-
+#if CHECKUP
     create_checkup_timer();
-
+#endif
     getNTPtime(&setRTC); // get UTC time
 
-    #define HOST "worldtimeapi.org"
-    #define URL_REQUEST "/api/ip"
-
-    //getHTTPClientResponse(HOST, URL_REQUEST, &getLocalTime); // get local time 
+    //getHTTPClientResponse(HOST, URL_REQUEST, &getLocalTime); // get local time - this requires Peter Harper's PICO-SDK
 
     httpd_init();
 
@@ -204,8 +259,10 @@ void main_task(__unused void *params) {
     runTimeStats();
 
     while(true) {
+#if CHECKUP        
         if(runCheck)
             doCheckup();
+#endif            
         vTaskDelay(100); // allow other tasks in
     }
     print_date();
@@ -213,6 +270,11 @@ void main_task(__unused void *params) {
     cyw43_arch_deinit();
 }
 
+/**
+ * 
+ * Create main task and start the scheduler
+ * 
+*/
 void vLaunch( void) {
     TaskHandle_t task;
     xTaskCreate(main_task, "MainThread", 8192, NULL, MAIN_TASK_PRIORITY, &task);
@@ -228,16 +290,17 @@ void vLaunch( void) {
     vTaskStartScheduler();
 }
 
+// These hooks are defiend as part of the PICO-SDK implementation
 //#ifndef NDEBUG
 // Note: All pvPortMallocs should be checked individually,
 // but we don't expect any to fail,
 // so this can help flag problems in Debug builds.
-// void vApplicationMallocFailedHook(void) {
-//     printf("\nMalloc failed! Task: %s\n", pcTaskGetName(NULL));
-//     //__disable_irq(); /* Disable global interrupts. */
-//     vTaskSuspendAll();
-//     //__BKPT(5);
-// }
+void vApplicationMallocFailedHook(void) {
+    printf("\nMalloc failed! Task: %s\n", pcTaskGetName(NULL));
+    //__disable_irq(); /* Disable global interrupts. */
+    vTaskSuspendAll();
+    //__BKPT(5);
+}
 //#endif
 
 // void vApplicationStackOverflowHook( TaskHandle_t xTask,
@@ -247,7 +310,11 @@ void vLaunch( void) {
 //     //__BKPT(5);                                 
 // }
 
-
+/**
+ * 
+ * Initialize IO and launch FreeRTOS
+ * 
+*/
 int main( void )
 {
     stdio_init_all();
