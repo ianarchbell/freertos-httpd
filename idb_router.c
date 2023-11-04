@@ -295,7 +295,7 @@ void readLog(char* name, char* jsonBuffer, int count){
 
 void readLogWithDate(NameFunction* ptr, char* buffer, int count, char* uri){
     #define MINBUFSIZE 64
-    #define JSONBUFFSIZE 1024
+    #define JSONBUFFSIZE 1460
     
     char* logDate = pvPortMalloc(MINBUFSIZE);
      if (logDate){
