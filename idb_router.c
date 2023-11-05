@@ -67,6 +67,9 @@ void returnTemperature(NameFunction* ptr, char* buffer, int count){
     
         // Output JSON very simply
         int len = sprintf(buf, "{\"temperature\": %.3g,\"temperature units\": \"%c\"}", (double)temperature, TEMPERATURE_UNITS);
+        if (len > count){
+            panic("buffer too small for temperature\n")
+        }
         printJSONHeaders(buffer, len);
         strcat(buffer, buf);
     }
@@ -81,6 +84,7 @@ int getSetValue(const char* uri){
 
     char buff[64]; 
     strncpy(buff, uri, sizeof(buff));
+    buff[sizeof(buff)-1] = '\0';  // Ensure null if truncated
     strtok(buff,"/"); // find the first /
     const char* subString = strtok(NULL,"/");       // find the second "/""
     if (subString == NULL)
@@ -154,6 +158,7 @@ int getGPIO(const char* uri){
 
     char buff[64]; 
     strncpy(buff, uri, sizeof(buff));
+    buff[sizeof(buff)-1] = '\0';  // Ensure null if truncated
     strtok(buff,"/"); // find the first /
     const char* subString = strtok(NULL,"/");       // find the second /
     if (subString == NULL)
@@ -173,6 +178,7 @@ int getGPIOValue(const char* uri){
 
     char buff[64]; 
     strncpy(buff, uri, sizeof(buff));
+    buff[sizeof(buff)-1] = '\0';  // Ensure null if truncated
     strtok(buff,"/"); // find the first /
     const char* subString = strtok(NULL,"/");       // find the second /
     if (subString == NULL)
@@ -244,6 +250,7 @@ void getLogDate(const char* uri, char* buffer){
 
     char buff[64]; 
     strncpy(buff, uri, sizeof(buff));
+    buff[sizeof(buff)-1] = '\0';  // Ensure null if truncated
 
     strtok(buff,"/"); // find the first /
     const char* subString = strtok(NULL,"/");   // find the second /
@@ -453,7 +460,7 @@ NameFunction* parseExact(const char* name, int routeType){
 */
 NameFunction* parsePartialMatch(const char* name, int routeType){
 
-    char buf[64];
+    char buff[64];
     
     //printf("Parsing partial route : %s\n", name);
     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
@@ -462,8 +469,9 @@ NameFunction* parsePartialMatch(const char* name, int routeType){
             continue;
         if(!strstr(ptr->routeName, ":")) // can't partial match if no variable
             continue;
-        strncpy(buf, ptr->routeName, sizeof(buf));
-        const char* tok = strtok(buf, "/"); // start of route
+        strncpy(buff, ptr->routeName, sizeof(buf));
+        buff[sizeof(buff)-1] = '\0';  // Ensure null if truncated
+        const char* tok = strtok(buff, "/"); // start of route
         if(!strncmp(tok, name+1, strlen(tok))) { // first token must match
             //printf("Token: %s\n", tok);
             return ptr;

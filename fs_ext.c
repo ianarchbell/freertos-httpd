@@ -104,6 +104,9 @@ int fs_open_custom(struct fs_file *file, const char *name){
         file->flags |= FS_FILE_FLAGS_CUSTOM;
         file->flags |= FS_FILE_FLAGS_ROUTE; // not used in fs.c
         file->pextension = fun_ptr; // store the handler for read
+        if(fun_ptr->uri != NULL){
+            panic("fun_ptr should be null: %s\n", fun_ptr->uri);
+        }
         fun_ptr->uri = pvPortMalloc(strlen(name));
         if(fun_ptr->uri)
             strcpy(fun_ptr->uri, name);
@@ -169,16 +172,18 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
     }
     else{
         NameFunction* fun_ptr = file->pextension;
-        printf("fs_read_custom : executing route %s, uri: %s\n", fun_ptr->routeName, fun_ptr->uri);
         if (fun_ptr){
-            //printf("calling route handler\n");
+            printf("fs_read_custom : executing route %s, uri: %s\n", fun_ptr->routeName, fun_ptr->uri);
             route(fun_ptr, buffer, count, fun_ptr->uri);
+            printf("fs_read_custom : route response:\n%s\n", buffer);
+            br = strlen(buffer);
+            printf("fs_read_custom : route response length: %u\n", br);
+            file->len = br; // only reads one record at the moment *** IAN
+            file->index += br;
         }
-        printf("fs_read_custom : route response:\n%s\n", buffer);
-        br = strlen(buffer);
-        printf("fs_read_custom : route response length: %i\n", br);
-        file->len = br; // only reads one record at the moment *** IAN
-        file->index += br;
+        else{
+            panic("No NameFunction pinter in pextension\n");
+        }
     }
     return br;
 };
