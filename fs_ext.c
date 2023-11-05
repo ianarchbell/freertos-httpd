@@ -123,7 +123,7 @@ int fs_open_custom(struct fs_file *file, const char *name){
  * Helper to print headers
  * 
 */
-int printHTMLHeaders(char* buffer, int count){
+int printHTTPHeaders(char* buffer, int count){
     strcpy(buffer, "HTTP/1.1 200 OK\n");
     strcat(buffer, "Content-Type: text/html; charset=utf-8\n");
     sprintf(buffer+strlen(buffer), "Content-Length: %d\n\n", count);
@@ -149,7 +149,7 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
         int offset = 0;
         if (!((file->flags & FS_FILE_FLAGS_HEADERS_OUT) != 0)) {
             printf("Printing http headers\n");
-            offset = printHTMLHeaders(buffer,file->len);
+            offset = printHTTPHeaders(buffer,file->len);
             file->flags |= FS_FILE_FLAGS_HEADERS_OUT;
             file->len += offset; // allow for the headers
         }

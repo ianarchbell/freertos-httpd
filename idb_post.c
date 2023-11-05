@@ -36,8 +36,6 @@ static char* POST_uri = NULL;
  * 
 */
 
-
-
 err_t
 httpd_post_begin(void *connection, const char *uri, const char *http_request,
                  u16_t http_request_len, int content_len, char *response_uri,
@@ -74,11 +72,12 @@ httpd_post_begin(void *connection, const char *uri, const char *http_request,
 }
 
 char*
-getTokenValue(struct pbuf *p, char* token)
+getTokenValue(struct pbuf *p, const char* token)
 {
   char tokenBuf[MAX_TOKEN_SIZE];
 
-  strcpy(tokenBuf, token);
+  strncpy(tokenBuf, token, MAX_TOKEN_SIZE);
+  tokenBuf[MAX_TOKEN_SIZE-1] = '\0';
   strcat(tokenBuf, "=");
   u16_t token_index = pbuf_memfind(p, tokenBuf, strlen(tokenBuf), 0);
   if (token_index != 0xFFFF) {
@@ -111,29 +110,33 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
   char* prefix_ptr;
   char* token_ptr;
   char* token_ptr1; 
-  char* token_value;
 
   printf("Handling POST receieve\n");
   if (current_connection == connection && POST_uri != NULL) {
      printf("In current connection\n");
 
     // construct router route from parms
-    strcpy(namedRoute, current_nameFunction->routeName);
+    strncpy(namedRoute, current_nameFunction->routeName, URI_BUFSIZE);
+    namedRoute[URI_BUFSIZE-1] = '\0';
 
     // first token - either the complete route or prefix to ':'
     prefix_ptr = strtok(namedRoute, ":");
     if(!prefix_ptr){
-      strcpy(POST_uri, current_nameFunction->routeName);
+      strncpy(POST_uri, current_nameFunction->routeName, URI_BUFSIZE);
+      POST_uri[URI_BUFSIZE-1] = '\0';
       return ERR_OK;
     }
     else{
       // Copy the prefix to the uri
-      strcpy(POST_uri, prefix_ptr);
+      strncpy(POST_uri, prefix_ptr, URI_BUFSIZE);
+      POST_uri[URI_BUFSIZE-1] = '\0';
       POST_uri[strlen(prefix_ptr)-1] = 0x00;
        // take 1 off the length for the '/' - we add one for every variable found
       token_ptr = prefix_ptr;
     }
     while(token_ptr){
+      char* token_value;
+      
       token_ptr1 =  strtok(NULL, "/");
       //printf("token_ptr1: %s\n", token_ptr1); 
       if(token_ptr1)
@@ -158,20 +161,23 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
 void
 httpd_post_finished(void *connection, char *response_uri, u16_t response_uri_len)
 {
+
   /* default page is "JSON failure" */
-  snprintf(response_uri, response_uri_len, "/failure");
-  if (current_connection == connection) {
-    if (POST_uri) {
+ //snprintf(response_uri, response_uri_len, "/failure");
+ if (current_connection == connection) {
+   if (POST_uri) {
       printf("POSTing route uri: %s\n", POST_uri);
-      //NameFunction* routeFunction = isRoute(POST_uri, HTTP_POST);
-      if(current_nameFunction){
-        route(current_nameFunction, POST_uri, strlen(POST_uri), POST_uri);
-        snprintf(response_uri, response_uri_len, "/success");
-      }
+      NameFunction* routeFunction = isRoute(POST_uri, HTTP_POST);
+      if(routeFunction){
+        char buffer[128];
+        route(routeFunction, buffer, sizeof buffer, POST_uri);
+        // snprintf(response_uri, response_uri_len,"/success");
+        // response_uri[response_uri_len-1] = '\0';
+     }
       vPortFree(POST_uri);
       POST_uri = NULL;
-    }
-  }
+   }
+ }
   current_connection = NULL;
   valid_connection = NULL;
 }

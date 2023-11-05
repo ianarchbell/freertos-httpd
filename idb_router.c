@@ -68,7 +68,7 @@ void returnTemperature(NameFunction* ptr, char* buffer, int count){
         // Output JSON very simply
         int len = sprintf(buf, "{\"temperature\": %.3g,\"temperature units\": \"%c\"}", (double)temperature, TEMPERATURE_UNITS);
         if (len > count){
-            panic("buffer too small for temperature\n")
+            panic("buffer too small for temperature\n");
         }
         printJSONHeaders(buffer, len);
         strcat(buffer, buf);
@@ -105,11 +105,16 @@ void returnLED(NameFunction* ptr, char* buffer, int count){
 
     int led = cyw43_arch_gpio_get(CYW43_WL_GPIO_LED_PIN);
     if (buffer){
-        char buf[64];
+        char buff[64];
         // Output JSON very simply
-        int len = sprintf(buf, "{\"led\": %d}", led);
+        int len = sprintf(buff, "{\"led\": %d}", led);
         printJSONHeaders(buffer, len);
-        strcat(buffer, buf);
+        if(strlen(buffer) + len < count){
+            strcat(buffer, buff);
+        }
+        else{
+            panic("buffer too small for returnLED\n");
+        }
     }
 }
 
@@ -123,12 +128,17 @@ void setLED(NameFunction* ptr, char* buffer, int count, const char* uri){
     int value = getSetValue(uri);
     //printf("Setting LED value %d", value);
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, value);
-    if (buffer){ 
-        char buf[64];   
-        int len = sprintf(buf, "%s", "{\"success\" : true}");
-        printJSONHeaders(buffer, len); // print out headers with no body
-        strcat(buffer, buf);
-    }
+    // if (buffer){ 
+    //     char buff[64];   
+    //     int len = sprintf(buff, "%s", "{\"success\" : true}");
+    //     printJSONHeaders(buffer, len); // print out headers with no body
+    //     if(strlen(buffer) + len < count){
+    //         strcat(buffer, buff);
+    //     }
+    //     else{
+    //         panic("buffer too small for returnLED\n");
+    //     }
+    // }
 }
 
 /**
@@ -140,13 +150,17 @@ void setGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin, int gpio_
     gpio_init(gpio_pin);
     gpio_set_dir(gpio_pin, GPIO_OUT);
     gpio_put(gpio_pin, gpio_value);
-    if (buffer){
-        char buf[64];       
-        int len = sprintf(buf, "%s", "{\"success\" : true}");
-        printJSONHeaders(buffer, len); // print out headers with no body
-        strcat(buffer, buf);
-    }
-    printf("exiting setGPIO\n");
+    // if (buffer){
+    //     char buff[64];       
+    //     int len = sprintf(buff, "%s", "{\"success\" : true}");
+    //     printJSONHeaders(buffer, len); // print out headers 
+    //     if((strlen(buffer) + len) < count){
+    //         strcat(buffer, buff);
+    //     }
+    //     else{
+    //         panic("buffer too small for setGPIO\n");
+    //     }
+    // }
 }
 
 /**
@@ -202,12 +216,17 @@ void returnGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin){
     int gpio_value = (int)gpio_get(gpio_pin);
 
     if (buffer){
-        char buf[64];
+        char buff[64];
         // Output JSON very simply
         //printf("Returning GPIO status %d", gpio_pin);
-        int len = snprintf(buf, sizeof buf, "{\"%d\" : %d}", gpio_pin, gpio_value);
+        int len = snprintf(buff, sizeof buff, "{\"%d\" : %d}", gpio_pin, gpio_value);
         printJSONHeaders(buffer, len);
-        strcat(buffer, buf);
+        if(strlen(buffer) + len < count){
+            strcat(buffer, buff);
+        }
+        else{
+            panic("buffer too small for returnLED\n");
+        }
     }
 }
 
@@ -246,7 +265,7 @@ void getData(char *buff, Measurement* reading){
  * Tokenises the date from the uri
  * 
 */
-void getLogDate(const char* uri, char* buffer){
+void getLogDate(const char* uri, char* buffer, int count){
 
     char buff[64]; 
     strncpy(buff, uri, sizeof(buff));
@@ -255,7 +274,9 @@ void getLogDate(const char* uri, char* buffer){
     strtok(buff,"/"); // find the first /
     const char* subString = strtok(NULL,"/");   // find the second /
     //subString = strtok(NULL,"/");   // find the third /
-
+    if (strlen(subString) > count){
+        panic("Buffer too small for logDate\n");
+    }
     strcpy(buffer, subString);
 }
 
@@ -370,7 +391,7 @@ void readLogWithDate(NameFunction* ptr, char* buffer, int count, const char* uri
      if (logDate){
         char* buf = pvPortMalloc(JSONBUFFSIZE);  
         if (buf){
-            getLogDate(uri, logDate);
+            getLogDate(uri, logDate, MINBUFSIZE);
             //printf("Log date: %s\n", logDate);
             readLog(logDate, buf, JSONBUFFSIZE-MINBUFSIZE); // should be enough for the header
             //printf("Response from readLog: %s\n", buf);
@@ -396,10 +417,15 @@ void readLogWithDate(NameFunction* ptr, char* buffer, int count, const char* uri
 */
 void success(NameFunction* ptr, char* buffer, int count, char* uri){
     printf("Success\n");
-    char buf[64];
-    int len = sprintf(buf, "%s", "{\"success\" : true}");
+    char buff[64];
+    int len = sprintf(buff, "%s", "{\"success\" : true}");
     printJSONHeaders(buffer, len); // print out headers with no body
-    strcat(buffer, buf);
+    if(strlen(buffer) + len < count){
+        strcat(buffer, buff);
+    }
+    else{
+        panic("buffer too small for success\n");
+    }
 }
 
 /**
@@ -409,10 +435,15 @@ void success(NameFunction* ptr, char* buffer, int count, char* uri){
 */
 void failure(NameFunction* ptr, char* buffer, int count, char* uri){
     printf("Failure\n");
-    char buf[64];
-    int len = sprintf(buf, "%s", "{\"success\" : false}");
+    char buff[64];
+    int len = sprintf(buff, "%s", "{\"success\" : false}");
     printJSONHeaders(buffer, len); // print out headers with no body
-    strcat(buffer, buf);
+    if(strlen(buffer) + len < count){
+        strcat(buffer, buff);
+    }
+    else{
+        panic("buffer too small for success\n");
+    }
 }
 
 /**
@@ -469,7 +500,7 @@ NameFunction* parsePartialMatch(const char* name, int routeType){
             continue;
         if(!strstr(ptr->routeName, ":")) // can't partial match if no variable
             continue;
-        strncpy(buff, ptr->routeName, sizeof(buf));
+        strncpy(buff, ptr->routeName, sizeof(buff));
         buff[sizeof(buff)-1] = '\0';  // Ensure null if truncated
         const char* tok = strtok(buff, "/"); // start of route
         if(!strncmp(tok, name+1, strlen(tok))) { // first token must match

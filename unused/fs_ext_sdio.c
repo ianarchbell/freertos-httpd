@@ -103,7 +103,7 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
         NameFunction* fun_ptr = file->pextension;
         if (fun_ptr){
             printf("calling route handler\n");
-            route(fun_ptr, buffer, count);
+            route(fun_ptr, buffer, count); // *** TODO
         }
         printf("custom read route, buffer %s\n", buffer);
         br = strlen(buffer);
