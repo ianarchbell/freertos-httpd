@@ -374,7 +374,6 @@ void readLog(const char* name, char* jsonBuffer, int count){
         sprintf(jsonBuffer+bufferPos-2, "]");
         ff_fclose(pxFile);  
     }
-
 }
 
 /**

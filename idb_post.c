@@ -158,6 +158,12 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
   return ERR_OK;
 } 
 
+/**
+ * 
+ * ! We are getting an invalid heap for an as yet unknown reason when we return a uri 
+ * ! So currently the response is a 404
+ * 
+*/
 void
 httpd_post_finished(void *connection, char *response_uri, u16_t response_uri_len)
 {
@@ -171,8 +177,7 @@ httpd_post_finished(void *connection, char *response_uri, u16_t response_uri_len
       if(routeFunction){
         char buffer[128];
         route(routeFunction, buffer, sizeof buffer, POST_uri);
-        // snprintf(response_uri, response_uri_len,"/success");
-        // response_uri[response_uri_len-1] = '\0';
+        //snprintf(response_uri, response_uri_len,"index.shtml");
      }
       vPortFree(POST_uri);
       POST_uri = NULL;

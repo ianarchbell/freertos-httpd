@@ -182,7 +182,7 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
             file->index += br;
         }
         else{
-            panic("No NameFunction pinter in pextension\n");
+            panic("No NameFunction pointer in pextension\n");
         }
     }
     return br;
