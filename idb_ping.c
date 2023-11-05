@@ -57,6 +57,7 @@
 /* ping variables */
 static const ip_addr_t* ping_target;
 static u16_t ping_seq_num;
+static u16_t ping_count; 
 #ifdef LWIP_DEBUG
 static u32_t ping_time;
 #endif /* LWIP_DEBUG */
@@ -226,7 +227,7 @@ ping_run()
   LWIP_ASSERT("setting receive timeout failed", ret == 0);
   LWIP_UNUSED_ARG(ret);
 
-  for(int i=0 ; i < 10 ; i++) {
+  for(int i=0 ; i < ping_count ; i++) {
     if (ping_send(s, ping_target) == ERR_OK) {
       LWIP_DEBUGF( PING_DEBUG, ("ping: send "));
       ip_addr_debug_print(PING_DEBUG, ping_target);
@@ -245,9 +246,10 @@ ping_run()
   }
 }
 
-void ping_init(const ip_addr_t* ping_addr)
+void ping_init(const ip_addr_t* ping_addr, int count)
 {
   ping_target = ping_addr;
+  ping_count = count;
   ping_run();
 
 }

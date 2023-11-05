@@ -3,6 +3,11 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+/**
+ * 
+ * ! Only use this for debugging as scheduler remains suspended for an extended period 
+ * 
+*/
 
 void runTimeStats(   ){
 	TaskStatus_t *pxTaskStatusArray;
@@ -19,6 +24,7 @@ void runTimeStats(   ){
 
    if( pxTaskStatusArray != NULL ){
       // Generate raw status information about each task.
+
       uxArraySize = uxTaskGetSystemState( pxTaskStatusArray,
                                  uxArraySize,
                                  &ulTotalRunTime );

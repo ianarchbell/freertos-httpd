@@ -63,6 +63,10 @@
 #define CHECKUP IDB_CHECKUP
 #define CHECKUP_INTERVAL_MS IDB_CHECKUP_INTERVAL * 1000 // once a minute ish
 #define PING_ADDR IDB_PING_ADDR
+#define PING_ON IDB_PING_ON
+#define PING_COUNT IDB_PING_COUNT
+#define STATS IDB_STATS
+#define ROUTE_TEST IDB_ROUTE_TEST
 
 /**
  * Used to get local time zone
@@ -183,7 +187,7 @@ void start_wifi(){
 void do_ping(){
     
     ipaddr_aton(PING_ADDR, &ping_addr);
-    ping_init(&ping_addr);
+    ping_init(&ping_addr, PING_COUNT);
 }
 
 /**
@@ -193,12 +197,13 @@ void do_ping(){
 */
 void testRoute(){
     
-    char buf[1024]; 
+    
     char buffer[] = "/readlog/2023-10-17";
     NameFunction* fun_ptr = isRoute(buffer, HTTP_GET);
-    if (fun_ptr)
+    if (fun_ptr){
+        char buf[1024]; 
         route(fun_ptr, buf, sizeof buf, buffer);
-
+    }
 }
 
 #if CHECKUP
@@ -209,11 +214,17 @@ void checkup(){
 void doCheckup(){
     
         printf("Routine checkup\n");
-        runTimeStats();
         int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
         printf("Link status: %d\n", status);
-        //do_ping();
+    #if PING_ON
+        do_ping();
+    #endif
+    #if STATS
+        runTimeStats();
+    #endif
+    #if ROUTE_TEST
         //testRoute();
+    #endif    
         runCheck = false;
         //cyw43_arch_deinit();
         //start_wifi();  

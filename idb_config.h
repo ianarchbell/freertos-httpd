@@ -1,3 +1,7 @@
 #define IDB_CHECKUP 1
 #define IDB_CHECKUP_INTERVAL 20
 #define IDB_PING_ADDR "192.168.50.1"
+#define IDB_PING_ON 0
+#define IDB_PING_COUNT 1
+#define IDB_STATS 0
+#define IDB_ROUTE_TEST 0
