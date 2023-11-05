@@ -209,7 +209,7 @@ void checkup(){
 void doCheckup(){
     
         printf("Routine checkup\n");
-        //runTimeStats();
+        runTimeStats();
         int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
         printf("Link status: %d\n", status);
         //do_ping();

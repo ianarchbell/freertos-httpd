@@ -25,25 +25,27 @@
 
 /**
  * 
- * 
- * Calls getCoreTemperature in adc.c to get the 
- * 
+ * Calls getCoreTemperature in adc.c to get the core temperature
  * 
 */
 float read_onboard_temperature(const char unit) {
 
     float temp = getCoreTemperature(unit);
-
     if (unit == 'C') {
         return temp;
     } else if (unit == 'F') {
         return temp * 9 / 5 + 32;
     }
-
     return -1.0f;
 }
 
+/**
+ * 
+ * Prints the HTTP headers for all the json responses
+ * 
+*/
 int printJSONHeaders(char* buffer, int count){
+
     strcpy(buffer, "HTTP/1.1 200 OK\n");
     strcat(buffer, "Content-Type: application/json\n");
     sprintf(buffer+strlen(buffer), "Content-Length: %d\n\n", count);
@@ -51,15 +53,18 @@ int printJSONHeaders(char* buffer, int count){
     return strlen(buffer);
 }
 
+/**
+ * 
+ * Outputs the json for the GET temperature response
+ * 
+*/
 void returnTemperature(NameFunction* ptr, char* buffer, int count){
 
-    char buf[64];
-
-    float temperature = getCoreTemperature(TEMPERATURE_UNITS);
-
-    printf("Onboard temperature =  %.3g %c\n", (double)temperature, TEMPERATURE_UNITS);
-
     if (buffer){
+        char buf[64];
+        float temperature = getCoreTemperature(TEMPERATURE_UNITS);
+        printf("Onboard temperature =  %.3g %c\n", (double)temperature, TEMPERATURE_UNITS);
+    
         // Output JSON very simply
         int len = sprintf(buf, "{\"temperature\": %.3g,\"temperature units\": \"%c\"}", (double)temperature, TEMPERATURE_UNITS);
         printJSONHeaders(buffer, len);
@@ -67,25 +72,36 @@ void returnTemperature(NameFunction* ptr, char* buffer, int count){
     }
 }
 
-int getSetValue(char* uri){
+/**
+ * 
+ * Getting the value to be set = 0 or 1
+ * 
+*/
+int getSetValue(const char* uri){
 
     char buff[64]; 
     strncpy(buff, uri, sizeof(buff));
-    char* subString = strtok(buff,"/"); // find the first /
-    char* subString2 = strtok(NULL,"/");       // find the second /
-    if (subString2 == NULL)
+    strtok(buff,"/"); // find the first /
+    const char* subString = strtok(NULL,"/");       // find the second "/""
+    if (subString == NULL)
         return -1;
     else{
         //printf("Got LED uri value %s", subString2);
-        return atoi(subString2);
+        return atoi(subString);
     }
 }
 
+/**
+ * 
+ * Returns the currrent value of the LED in json format
+ * 
+*/
 void returnLED(NameFunction* ptr, char* buffer, int count){
     //printf("Getting LED value");
-    char buf[64];
+
     int led = cyw43_arch_gpio_get(CYW43_WL_GPIO_LED_PIN);
     if (buffer){
+        char buf[64];
         // Output JSON very simply
         int len = sprintf(buf, "{\"led\": %d}", led);
         printJSONHeaders(buffer, len);
@@ -93,26 +109,35 @@ void returnLED(NameFunction* ptr, char* buffer, int count){
     }
 }
 
-void setLED(NameFunction* ptr, char* buffer, int count, char* uri){
+/**
+ * 
+ * Sets the value of the lED and returns json success
+ * 
+*/
+void setLED(NameFunction* ptr, char* buffer, int count, const char* uri){
+
     int value = getSetValue(uri);
     //printf("Setting LED value %d", value);
-    char buf[64];
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, value);
-    if (buffer){    
+    if (buffer){ 
+        char buf[64];   
         int len = sprintf(buf, "%s", "{\"success\" : true}");
         printJSONHeaders(buffer, len); // print out headers with no body
         strcat(buffer, buf);
     }
 }
 
+/**
+ * 
+ * Sets the value of a GPIO and returns json success
+ * 
+*/
 void setGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin, int gpio_value){
-
-    char buf[64];
-
     gpio_init(gpio_pin);
     gpio_set_dir(gpio_pin, GPIO_OUT);
     gpio_put(gpio_pin, gpio_value);
-    if (buffer){       
+    if (buffer){
+        char buf[64];       
         int len = sprintf(buf, "%s", "{\"success\" : true}");
         printJSONHeaders(buffer, len); // print out headers with no body
         strcat(buffer, buf);
@@ -120,43 +145,58 @@ void setGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin, int gpio_
     printf("exiting setGPIO\n");
 }
 
-int getGPIO(char* uri){
+/**
+ * 
+ * Returns the number of the GPIO to the caller
+ * 
+*/
+int getGPIO(const char* uri){
 
     char buff[64]; 
     strncpy(buff, uri, sizeof(buff));
-    char* subString = strtok(buff,"/"); // find the first /
-    char* subString2 = strtok(NULL,"/");       // find the second /
-    if (subString2 == NULL)
+    strtok(buff,"/"); // find the first /
+    const char* subString = strtok(NULL,"/");       // find the second /
+    if (subString == NULL)
         return -1;
     else{
         //printf("Got GPIO number %s\n", subString2);
+        return atoi(subString);
+    }
+}
+
+/**
+ * 
+ * Returns the value of the GPIO to the caller
+ * 
+*/
+int getGPIOValue(const char* uri){
+
+    char buff[64]; 
+    strncpy(buff, uri, sizeof(buff));
+    strtok(buff,"/"); // find the first /
+    const char* subString = strtok(NULL,"/");       // find the second /
+    if (subString == NULL)
+        return -1;
+    const char* subString2 = strtok(NULL,"/");       // find the second /
+    if (subString2 == NULL)
+        return -1;
+    else{    
+        //printf("Got GPIO value %s\n", subString3);
         return atoi(subString2);
     }
 }
 
-int getGPIOValue(char* uri){
-
-    char buff[64]; 
-    strncpy(buff, uri, sizeof(buff));
-    char* subString = strtok(buff,"/"); // find the first /
-    char* subString2 = strtok(NULL,"/");       // find the second /
-    if (subString2 == NULL)
-        return -1;
-    char* subString3 = strtok(NULL,"/");       // find the second /
-    if (subString3 == NULL)
-        return -1;
-    else{    
-        //printf("Got GPIO value %s\n", subString3);
-        return atoi(subString3);
-    }
-}
-
+/**
+ * 
+ * Returns the value of the GPIO in json
+ * 
+*/
 void returnGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin){
     
-    char buf[64];
     int gpio_value = (int)gpio_get(gpio_pin);
 
     if (buffer){
+        char buf[64];
         // Output JSON very simply
         //printf("Returning GPIO status %d", gpio_pin);
         int len = snprintf(buf, sizeof buf, "{\"%d\" : %d}", gpio_pin, gpio_value);
@@ -165,7 +205,12 @@ void returnGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin){
     }
 }
 
-void gpio(NameFunction* ptr, char* buffer, int count, char* uri){
+/**
+ * 
+ * Handles gpio - either get or set TODO - this is allowing GET for a POST route 
+ * 
+*/
+void gpio(NameFunction* ptr, char* buffer, int count, const char* uri){
     int GPIOpin = getGPIO(uri);
     int value = getGPIOValue(uri);
     if(value != -1){
@@ -178,17 +223,11 @@ void gpio(NameFunction* ptr, char* buffer, int count, char* uri){
     }
 }
 
-// each one more than required for terminating null
-#define DATETIMELEN 23
-#define TEMPLEN 6
-#define MAXREADINGS 10
-#define MAXLEN 54
-
-typedef struct Measurement{
-    char date_time[DATETIMELEN];
-    char temperature[TEMPLEN];
-} Measurement;
-
+/**
+ * 
+ * Helper to create a reading from a supplied buffer
+ * 
+*/
 void getData(char *buff, Measurement* reading){  
     char* ptr = strtok(buff, ",");
     strncpy(reading->date_time, ptr, DATETIMELEN);
@@ -196,19 +235,29 @@ void getData(char *buff, Measurement* reading){
     strncpy(reading->temperature, ptr, TEMPLEN);
 }
 
-void getLogDate(char* uri, char* buffer){
+/**
+ * 
+ * Tokenises the date from the uri
+ * 
+*/
+void getLogDate(const char* uri, char* buffer){
 
     char buff[64]; 
     strncpy(buff, uri, sizeof(buff));
 
-    char* subString = strtok(buff,"/"); // find the first /
-    subString = strtok(NULL,"/");   // find the second /
+    strtok(buff,"/"); // find the first /
+    const char* subString = strtok(NULL,"/");   // find the second /
     //subString = strtok(NULL,"/");   // find the third /
 
     strcpy(buffer, subString);
 }
 
-FF_FILE* openLogFile(char* name){
+/**
+ * 
+ * Helper to open the log file
+ * 
+*/
+FF_FILE* openLogFile(const char* name){
 
     char buffer[128];
 
@@ -220,6 +269,7 @@ FF_FILE* openLogFile(char* name){
 
     int n = snprintf(buffer, sizeof buffer, "%s/data/%s", MOUNTPOINT, name);                    
     configASSERT(0 < n && n < (int)sizeof buffer);
+    // TODO - not sure this is needed here as we'll already have this directory structure
     if (-1 == mkdirhier(buffer) &&
         stdioGET_ERRNO() != pdFREERTOS_ERRNO_EEXIST) {
         printf("failed to set directory");
@@ -230,15 +280,20 @@ FF_FILE* openLogFile(char* name){
     snprintf(buffer + n, sizeof buffer - n, "/log_data.csv");
     printf("Opening log file: %s\n", buffer);  
     FF_FILE* px = ff_fopen(buffer, "r");
-    printf("ff_open px: %d", px);
     return px;
 }
 
-void readLog(char* name, char* jsonBuffer, int count){
+/**
+ * 
+ * Read the log file - seeks to the end and reads no more than the last 10 records 
+ * or the number of records that will fit into the buffer - whichever is less.
+ * Result is provided as json
+ * 
+*/
+void readLog(const char* name, char* jsonBuffer, int count){
 
     Measurement readings[MAXREADINGS];
     Measurement reading;
-    char buffer[128];
 
     //printf("Buffer length: %d, name: %s\n", count, name);
 
@@ -246,6 +301,7 @@ void readLog(char* name, char* jsonBuffer, int count){
 
     // need to check if mounted?
     if (pxFile){
+        char buffer[128];
 
         printf("Log file open\n");
         int i = 0;
@@ -293,7 +349,13 @@ void readLog(char* name, char* jsonBuffer, int count){
 
 }
 
-void readLogWithDate(NameFunction* ptr, char* buffer, int count, char* uri){
+/**
+ * 
+ * Gets the log date and calls readLog to read the event log.
+ * Result is provided as json
+ * 
+*/
+void readLogWithDate(NameFunction* ptr, char* buffer, int count, const char* uri){
     #define MINBUFSIZE 64
     #define JSONBUFFSIZE 1460
     
@@ -320,10 +382,11 @@ void readLogWithDate(NameFunction* ptr, char* buffer, int count, char* uri){
      }
 }
 
-
-// this is pseudo-REST as it is all via GET - POST is not implemented.
-// : values are simply indicators of position, they are not used in parsing
-
+/**
+ * 
+ * General purpose successs route
+ * 
+*/
 void success(NameFunction* ptr, char* buffer, int count, char* uri){
     printf("Success\n");
     char buf[64];
@@ -332,6 +395,11 @@ void success(NameFunction* ptr, char* buffer, int count, char* uri){
     strcat(buffer, buf);
 }
 
+/**
+ * 
+ * General purpose failure route
+ * 
+*/
 void failure(NameFunction* ptr, char* buffer, int count, char* uri){
     printf("Failure\n");
     char buf[64];
@@ -340,7 +408,13 @@ void failure(NameFunction* ptr, char* buffer, int count, char* uri){
     strcat(buffer, buf);
 }
 
-
+/**
+ * 
+ * Routing table containes names routes, witha function pointer
+ * Routes can be confined to GET or POST
+ * The NULL pointer here is used at runtime to point to a URI
+ * 
+*/
 NameFunction routes[] =
 { 
     { "/temp", (void*) *returnTemperature, HTTP_GET, NULL },
@@ -354,6 +428,11 @@ NameFunction routes[] =
     { "/success", (void*) *success, HTTP_GET || HTTP_POST, NULL},
 };
 
+/**
+ * 
+ * Checks is there is a full match on a provided route name and type
+ * 
+*/
 NameFunction* parseExact(const char* name, int routeType){
     //printf("Parsing exact route : %s\n", name);
     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
@@ -367,6 +446,11 @@ NameFunction* parseExact(const char* name, int routeType){
     return 0;
 }
 
+/**
+ * 
+ * Checks is there is a partial match on a provided route name and type
+ * 
+*/
 NameFunction* parsePartialMatch(const char* name, int routeType){
 
     char buf[64];
@@ -379,7 +463,7 @@ NameFunction* parsePartialMatch(const char* name, int routeType){
         if(!strstr(ptr->routeName, ":")) // can't partial match if no variable
             continue;
         strncpy(buf, ptr->routeName, sizeof(buf));
-        char* tok = strtok(buf, "/"); // start of route
+        const char* tok = strtok(buf, "/"); // start of route
         if(!strncmp(tok, name+1, strlen(tok))) { // first token must match
             //printf("Token: %s\n", tok);
             return ptr;
@@ -388,28 +472,18 @@ NameFunction* parsePartialMatch(const char* name, int routeType){
     return 0;
 }
 
+/**
+ * 
+ * Checks for both an exact or partial match on a route name
+ * Returns a pointer to the NameFunction (and so the function pointer)
+ * 
+*/
 NameFunction* isRoute(const char* name, int routeType){
 
-    // if (routeType != HTTP_GET && routeType != HTTP_POST)
-    //     routeType = HTTP_GET; // default to GET
-    //printf("Checking route : %s, Type: routeType\n", name);
     NameFunction* ptr = parseExact(name, routeType);
-
     if (!ptr){ // always return an exact match if found otherwise look for partial
         ptr = parsePartialMatch(name, routeType);
     }
-    // if (ptr){        
-    //     if (ptr->uri)
-    //         vPortFree(ptr->uri); // free the current uri
-    //     ptr->uri = pvPortMalloc(strlen(name));
-    //     if(ptr->uri){
-    //         strcpy(ptr->uri, name);
-    //         //printf("Confirmed route %s for uri %s\n", ptr->routeName, ptr->uri);
-    //     }
-    //     else{
-    //         panic("Failed to allocate uri for route\n");
-    //     }    
-    // }
     if (ptr)
         printf("In route table\n");
     else
@@ -417,21 +491,25 @@ NameFunction* isRoute(const char* name, int routeType){
     return ptr;  
 }
 
+/**
+ * 
+ * Performs the routing function using the supplied NameFunction
+ * buffer, count and original URI
+ * 
+*/
 void route(NameFunction* ptr, char* buffer, int count, char* uri){
-    if (buffer){       
+    if (buffer && count > 0 && uri){       
         printf("Routing %s\n", uri);
-        if (uri){ // we have to have a uri to process
-            ptr->routeFunction(ptr, buffer, count, uri);
-            
-            if (uri){
-                printf("routed uri: %s\n", uri);
-                // vPortFree(ptr->uri); // no need to free it is up to the caller
-                // ptr->uri = NULL;
-            }
-            else{
-                panic("no uri isRoute must be called prior to route\n");
-            }
-        }        //printf("after routeFunction\n");
+        ptr->routeFunction(ptr, buffer, count, uri);
+        
+        if (uri){
+            printf("routed uri: %s\n", uri);
+            // vPortFree(ptr->uri); // no need to free it is up to the caller
+            // ptr->uri = NULL;
+        }
+        else{
+            panic("no uri isRoute must be called prior to route\n");
+        }
     }
     else{
         printf("no buffer, can't route\n");

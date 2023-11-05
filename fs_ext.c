@@ -46,6 +46,14 @@ static bool init = false;
 #define DEVICENAME "sd0"
 #define MOUNTPOINT "/sd0"
 
+/**
+ * 
+ * fs_open_custom is called by fs_open if LWIP_HTTPD_CUSTOM_FILES 1
+ * LWIP_HTTPD_FILE_EXTENSION 1 also needs to be set as we use pextension 
+ * to store either an SDCARD file pointer or a route pointer 
+ * if it is a purely a route without a file reference
+ * 
+*/
 int fs_open_custom(struct fs_file *file, const char *name){
     // check if it is a route first, if not it must be a custom file
     NameFunction* fun_ptr = isRoute(name, HTTP_GET);
@@ -107,6 +115,11 @@ int fs_open_custom(struct fs_file *file, const char *name){
     return 1;
 }
 
+/**
+ * 
+ * Helper to print headers
+ * 
+*/
 int printHTMLHeaders(char* buffer, int count){
     strcpy(buffer, "HTTP/1.1 200 OK\n");
     strcat(buffer, "Content-Type: text/html; charset=utf-8\n");
@@ -114,6 +127,14 @@ int printHTMLHeaders(char* buffer, int count){
     return strlen(buffer);
 }
 
+/**
+ * 
+ * LWIP_HTTPD_DYNAMIC_FILE_READ 1 needs to be set for fs_read to call fs_custom_read
+ * Two main cases through here - either it is a real file, in which case it is read
+ * from the SD Card. If not, the route is handled and the response is returned
+ * Note that at present the response from a route must fit in one buffer
+ * 
+*/
 int fs_read_custom(struct fs_file *file, char *buffer, int count){
 
     
@@ -162,6 +183,13 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
     return br;
 };
 
+/**
+ * 
+ * Closes file or in the case of a route simply frees the allocated uri
+ * TODO need to look at how this allocation is done because it may be possible
+ * for a routing table to be modified before this is freed
+ * 
+*/
 void fs_close_custom(struct fs_file *file){
     //printf("in close\n");
     if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
@@ -169,8 +197,10 @@ void fs_close_custom(struct fs_file *file){
     }
     else{
         NameFunction* fun_ptr = file->pextension;
-        if (fun_ptr->uri)
+        if (fun_ptr->uri){
             vPortFree(fun_ptr->uri);
+            fun_ptr->uri = NULL;
+        }
         file->pextension = 0;
     }
     //printf("closed custom file\n");

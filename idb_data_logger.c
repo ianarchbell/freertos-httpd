@@ -183,6 +183,8 @@ void task_logger(void* unused_arg) {
     
     // Start the task loop
     while (true) {
+        vTaskDelay(100);
+
         // NOP
     }
 }

@@ -4,8 +4,7 @@
 //#define TRACE_PRINTF printf
 
 float  getCoreTemperature(char units){
-    int n;
-    char buf[128];
+
 // The temperature sensor is on input 4:
     adc_init();
     adc_set_temp_sensor_enabled(true);
@@ -21,8 +20,6 @@ float  getCoreTemperature(char units){
     //    T = 27 - (ADC_Voltage - 0.706)/0.001721
     float Tc = 27.0f - (voltage - 0.706f) / 0.001721f;
     TRACE_PRINTF("Temperature: %.1f °F\n", (double)Tc);
-    int nw = snprintf(buf + n, sizeof buf - n, "%.3g\n", (double)Tc);
-    configASSERT(0 < nw && nw < (int)sizeof buf);
     if (units == 'F')
         return Tc * 9/5 + 32;
     else{    
