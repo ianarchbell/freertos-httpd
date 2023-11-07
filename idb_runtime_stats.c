@@ -3,6 +3,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+#include "idb_config.h"
+
 /**
  * 
  * ! Only use this for debugging as scheduler remains suspended for an extended period 
@@ -17,7 +19,7 @@ void runTimeStats(   ){
 
    // Get number of takss
    uxArraySize = uxTaskGetNumberOfTasks();
-   printf("Number of tasks %d\n", uxArraySize);
+   TRACE_PRINTF("Number of tasks %d\n", uxArraySize);
 
    //Allocate a TaskStatus_t structure for each task.
    pxTaskStatusArray = (TaskStatus_t *)pvPortMalloc( uxArraySize * sizeof( TaskStatus_t ) );

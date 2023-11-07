@@ -93,6 +93,6 @@ set_source_files_properties(
 
 pico_add_extra_outputs(idb)
 
-pico_enable_stdio_usb(idb 1)
-pico_enable_stdio_uart(idb 0)
+pico_enable_stdio_usb(idb 0)
+pico_enable_stdio_uart(idb 1)
 

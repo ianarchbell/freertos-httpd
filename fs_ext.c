@@ -25,15 +25,15 @@
 
 #include "fs.h"
 
-#include "idb_router.h"
-
-#include "hw_config.h"
-#include "idb_router.h"
+//#include "hw_config.h"
 
 #include <stdbool.h>
 #include <string.h>
 
 #include "lwip/apps/httpd.h"
+
+#include "idb_router.h"
+#include "idb_config.h"
 
 // only mount once
 static bool init = false;
@@ -69,12 +69,12 @@ int fs_open_custom(struct fs_file *file, const char *name){
                 panic("failed to mount card\n");
                 return 0;
             };
-            printf("mounted %s: successfully\n", DEVICENAME);
+            TRACE_PRINTF("Mounted %s: successfully\n", DEVICENAME);
             init = true;   
         }
         char fullpath[256];
         sprintf(fullpath, "%s%s",MOUNTPOINT, name);
-        printf("opening custom: %s\n", fullpath);
+        TRACE_PRINTF("Opening custom: %s\n", fullpath);
         FF_FILE *pxFile = ff_fopen(fullpath, "r");
         if (pxFile && ff_filelength( pxFile )) {
         
@@ -91,12 +91,12 @@ int fs_open_custom(struct fs_file *file, const char *name){
             }
         }
         else{
-            printf("failed to open file %s\n", name);
+            TRACE_PRINTF("Failed to open file %s\n", name);
             return 0;
         }
     }
     else{ // is a route
-        //printf("%s is a route\n", name);
+        //TRACE_PRINTF("%s is a route\n", name);
         // flag as custom and a route
         file->data = NULL;
         file->index = 0;
@@ -107,13 +107,13 @@ int fs_open_custom(struct fs_file *file, const char *name){
         if(fun_ptr->uri != NULL){
             panic("fun_ptr should be null: %s\n", fun_ptr->uri);
         }
-        fun_ptr->uri = pvPortMalloc(strlen(name));
+        fun_ptr->uri = pvPortMalloc(strlen(name)+1);
         if(fun_ptr->uri)
             strcpy(fun_ptr->uri, name);
         else
             panic("Failed to allocate uri\n");    
         file->len = MAX_ROUTE_LEN; // max len
-        //printf("open: %s is a route\n", name);
+        //TRACE_PRINTF("open: %s is a route\n", name);
     }
     return 1;
 }
@@ -124,10 +124,16 @@ int fs_open_custom(struct fs_file *file, const char *name){
  * 
 */
 int printHTTPHeaders(char* buffer, int count){
-    strcpy(buffer, "HTTP/1.1 200 OK\n");
-    strcat(buffer, "Content-Type: text/html; charset=utf-8\n");
-    sprintf(buffer+strlen(buffer), "Content-Length: %d\n\n", count);
-    return strlen(buffer);
+    int len = snprintf(buffer, count, 
+"HTTP/1.1 200 OK\n \
+Content-Type: text/html; charset=utf-8\n \
+Content-Length: %d\n\n", count);    
+    if (len > count)
+        panic("HTTP header buffer not big enough");
+    // strcat(buffer, "Content-Type: text/html; charset=utf-8\n");
+    //sprintf(buffer+strlen(buffer), "Content-Length: %d\n\n", count);
+    //return strlen(buffer);
+    return len;
 }
 
 /**
@@ -144,17 +150,17 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
     uint32_t br = 0;
 
     if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
-        printf("fs_read_custom count: %d\n", count);
-        printf("file->len = %d, file->index = %d\n", file->len, file->index);
+        TRACE_PRINTF("fs_read_custom count: %d\n", count);
+        TRACE_PRINTF("file->len = %d, file->index = %d\n", file->len, file->index);
         int offset = 0;
         if (!((file->flags & FS_FILE_FLAGS_HEADERS_OUT) != 0)) {
-            printf("Printing http headers\n");
+            TRACE_PRINTF("Printing http headers\n");
             offset = printHTTPHeaders(buffer,file->len);
             file->flags |= FS_FILE_FLAGS_HEADERS_OUT;
             file->len += offset; // allow for the headers
         }
 
-        printf("reading custom\n");
+        TRACE_PRINTF("Reading custom\n");
         
         if (file->index < file->len){
             count -= offset;
@@ -162,22 +168,22 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
             if (pxFile == NULL)
                 panic("custom read error no SD file pointer\n");
             br = ff_fread( buffer + offset, 1, count, pxFile);
-            //printf("buffer: '%.*s'\n", count, buffer);
+            //TRACE_PRINTF("buffer: '%.*s'\n", count, buffer);
             br += offset;
             file->index += br;
         }
         else{
-             printf("File index reached file end, file->len = %d, file->index = %d\n", file->len, file->index);
+             TRACE_PRINTF("File index reached file end, file->len = %d, file->index = %d\n", file->len, file->index);
         }
     }
     else{
         NameFunction* fun_ptr = file->pextension;
         if (fun_ptr){
-            printf("fs_read_custom : executing route %s, uri: %s\n", fun_ptr->routeName, fun_ptr->uri);
+            TRACE_PRINTF("fs_read_custom : executing route %s, uri: %s\n", fun_ptr->routeName, fun_ptr->uri);
             route(fun_ptr, buffer, count, fun_ptr->uri);
-            printf("fs_read_custom : route response:\n%s\n", buffer);
+            //TRACE_PRINTF("fs_read_custom : route response:\n%s\n", buffer);
             br = strlen(buffer);
-            printf("fs_read_custom : route response length: %u\n", br);
+            //TRACE_PRINTF("fs_read_custom : route response length: %u\n", br);
             file->len = br; // only reads one record at the moment *** IAN
             file->index += br;
         }
@@ -196,7 +202,7 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
  * 
 */
 void fs_close_custom(struct fs_file *file){
-    //printf("in close\n");
+    //TRACE_PRINTF("Closed custom file\n");
     if (!((file->flags & FS_FILE_FLAGS_ROUTE) != 0)) {
         ff_fclose(file->pextension);
     }
@@ -208,6 +214,6 @@ void fs_close_custom(struct fs_file *file){
         }
         file->pextension = 0;
     }
-    //printf("closed custom file\n");
+    //TRACE_PRINTF("closed custom file\n");
 }    
 

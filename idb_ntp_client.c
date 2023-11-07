@@ -84,6 +84,7 @@ static void ntp_dns_found(const char *hostname, const ip_addr_t *ipaddr, void *a
 
 // NTP data received
 static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t port) {
+    printf("NTP response received\n");
     NTP_T *state = (NTP_T*)arg;
     uint8_t mode = pbuf_get_at(p, 0) & 0x7;
     uint8_t stratum = pbuf_get_at(p, 1);

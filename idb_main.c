@@ -67,6 +67,8 @@
 #define PING_COUNT IDB_PING_COUNT
 #define STATS IDB_STATS
 #define ROUTE_TEST IDB_ROUTE_TEST
+#define WIFI_SCAN IDB_WIFI_SCAN
+#define WIFI_SCAN_COUNT IDB_WIFI_SCAN_COUNT
 
 /**
  * Used to get local time zone
@@ -81,6 +83,7 @@ bool runCheck = false;
 ip_addr_t ping_addr;
 volatile TimerHandle_t checkup_timer;
 static TaskHandle_t th;
+struct netif netif;
 
 /**
  * 
@@ -91,7 +94,7 @@ void setRTC(NTP_T* npt_t, int status, time_t *result){
     printf("NTP callback received\n");
     if (status == 0 && result) {
         struct tm *utc = gmtime(result);
-        printf("NTP response: %02d/%02d/%04d %02d:%02d:%02d\n", utc->tm_mday, utc->tm_mon + 1, utc->tm_year + 1900,
+         printf("NTP response: %02d/%02d/%04d %02d:%02d:%02d\n", utc->tm_mday, utc->tm_mon + 1, utc->tm_year + 1900,
                 utc->tm_hour, utc->tm_min, utc->tm_sec);
 
         // Start on Friday 5th of June 2020 15:45:00
@@ -126,7 +129,7 @@ void print_date(){
     char *datetime_str = &datetime_buf[0];
     rtc_get_datetime(&t);
     datetime_to_str(datetime_str, sizeof(datetime_buf), &t);
-    printf("\r%s      ", datetime_str);
+    TRACE_PRINTF("\r%s      ", datetime_str);
 }
 
 /**
@@ -135,22 +138,86 @@ void print_date(){
  * 
 */
 void getLocalTime(char* buffer){
-    //printf(buffer);
+    //TRACE_PRINTF(buffer);
     enum { MAX_FIELDS = 16 };
     json_t pool[ MAX_FIELDS ];
-    //printf("Before first json\n");
+    //TRACE_PRINTF("Before first json\n");
     json_t const* parent = json_create( buffer, pool, MAX_FIELDS );
     if ( parent == NULL ) 
-        printf ("EXIT_FAILURE\n");
-    //printf("Before second json\n");
+        TRACE_PRINTF ("EXIT_FAILURE\n");
+    //TRACE_PRINTF("Before second json\n");
     json_t const* abbrevProperty = json_getProperty( parent, "abbreviation" );
     if ( abbrevProperty == NULL ) 
-        printf("json failure\n");
-    //printf("Before last json\n");    
+        TRACE_PRINTF("json failure\n");
+    //TRACE_PRINTF("Before last json\n");    
     char const* abbreviation = json_getValue( abbrevProperty );
-    printf("Local Time Zone: %s\n", abbreviation);
+    TRACE_PRINTF("Local Time Zone: %s\n", abbreviation);
     
 }
+
+
+static int scan_result(void *env, const cyw43_ev_scan_result_t *result) {
+    if (result) {
+        TRACE_PRINTF("ssid: %-32s rssi: %4d chan: %3d mac: %02x:%02x:%02x:%02x:%02x:%02x sec: %u\n",
+            result->ssid, result->rssi, result->channel,
+            result->bssid[0], result->bssid[1], result->bssid[2], result->bssid[3], result->bssid[4], result->bssid[5],
+            result->auth_mode);
+    }
+    return 0;
+}
+
+void wifi_scan(){
+    absolute_time_t scan_time = nil_time;
+    bool scan_in_progress = false;
+    for (int i = 0; i < WIFI_SCAN_COUNT; i++) {
+        if (absolute_time_diff_us(get_absolute_time(), scan_time) < 0) {
+            if (!scan_in_progress) {
+                cyw43_wifi_scan_options_t scan_options = {0};
+                int err = cyw43_wifi_scan(&cyw43_state, &scan_options, NULL, scan_result);
+                if (err == 0) {
+                    TRACE_PRINTF("Performing wifi scan\n");
+                    scan_in_progress = true;
+                } else {
+                    TRACE_PRINTF("Failed to start scan: %d\n", err);
+                    scan_time = make_timeout_time_ms(3000); // wait 3s and try again
+                }
+            } else if (!cyw43_wifi_scan_active(&cyw43_state)) {
+                scan_time = make_timeout_time_ms(10000); // wait 10s and scan again
+                scan_in_progress = false; 
+            }
+        }
+        // the following #ifdef is only here so this same example can be used in multiple modes;
+        // you do not need it in your code
+#if PICO_CYW43_ARCH_POLL
+        // if you are using pico_cyw43_arch_poll, then you must poll periodically from your
+        // main loop (not from a timer) to check for Wi-Fi driver or lwIP work that needs to be done.
+        cyw43_arch_poll();
+        // you can poll as often as you like, however if you have nothing else to do you can
+        // choose to sleep until either a specified time, or cyw43_arch_poll() has work to do:
+        cyw43_arch_wait_for_work_until(scan_time);
+#else
+        // if you are not using pico_cyw43_arch_poll, then WiFI driver and lwIP work
+        // is done via interrupt in the background. This sleep is just an example of some (blocking)
+        // work you might be doing.
+       sleep_ms(1000);
+#endif
+    }
+}
+
+
+
+/**
+ * 
+ * Callback when network status changes
+ * 
+*/
+// static void netif_status_callback(struct netif *netif)
+// {
+//     TRACE_PRINTF("netif status changed %s\n", ip4addr_ntoa(netif_ip4_addr(netif)));
+//     int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
+//     TRACE_PRINTF("Link status: %d\n", status);
+
+// }
 
 /**
  * 
@@ -161,22 +228,26 @@ void getLocalTime(char* buffer){
 void start_wifi(){
 
         if (cyw43_arch_init()) {
-        printf("failed to initialise\n");
+        TRACE_PRINTF("Failed to initialise Wi-Fi\n");
         return;
     }
 
-    printf("Connecting to WiFi SSID: %s \n", WIFI_SSID);
+    TRACE_PRINTF("Connecting to WiFi SSID: %s \n", WIFI_SSID);
 
     cyw43_arch_enable_sta_mode();
-    printf("Connecting to WiFi...\n");
+    uint32_t pm;
+    cyw43_wifi_get_pm(&cyw43_state, &pm);
+    cyw43_wifi_pm(&cyw43_state, CYW43_DEFAULT_PM & ~0xf); // disable power management
+    TRACE_PRINTF("Connecting to WiFi...\n");
 
     for(int i = 0;i<4;i++){
         if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_MIXED_PSK, 30000) == 0) {
-            printf("\nReady, preparing to run httpd at %s\n", ip4addr_ntoa(netif_ip4_addr(netif_list)));
+            TRACE_PRINTF("\nReady, preparing to run httpd at %s\n", ip4addr_ntoa(netif_ip4_addr(netif_list)));
             break;
         }
-        printf("Wi-Fi failed to start, retrying\n");
+        TRACE_PRINTF("Wi-Fi failed to start, retrying\n");
     }
+    //cyw43_wifi_pm(&cyw43_state, pm); // reset power management
 }
 
 /**
@@ -213,9 +284,9 @@ void checkup(){
 
 void doCheckup(){
     
-        printf("Routine checkup\n");
+        TRACE_PRINTF("Routine checkup\n");
         int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
-        printf("Link status: %d\n", status);
+        TRACE_PRINTF("Link status: %d\n", status);
     #if PING_ON
         do_ping();
     #endif
@@ -224,7 +295,10 @@ void doCheckup(){
     #endif
     #if ROUTE_TEST
         //testRoute();
-    #endif    
+    #endif  
+    #if WIFI_SCAN
+        wifi_scan();
+    #endif      
         runCheck = false;
         //cyw43_arch_deinit();
         //start_wifi();  
@@ -265,7 +339,7 @@ void main_task(__unused void *params) {
     httpd_init();
 
     bool rc = logger_init();
-    printf("Initializing data logger: %s\n", rc ? "true" : "false");
+    TRACE_PRINTF("Initializing data logger: %s\n", rc ? "true" : "false");
 
     runTimeStats();
 
@@ -307,7 +381,7 @@ void vLaunch( void) {
 // but we don't expect any to fail,
 // so this can help flag problems in Debug builds.
 void vApplicationMallocFailedHook(void) {
-    printf("\nMalloc failed! Task: %s\n", pcTaskGetName(NULL));
+    TRACE_PRINTF("\nMalloc failed! Task: %s\n", pcTaskGetName(NULL));
     //__disable_irq(); /* Disable global interrupts. */
     vTaskSuspendAll();
     //__BKPT(5);
@@ -316,7 +390,7 @@ void vApplicationMallocFailedHook(void) {
 
 // void vApplicationStackOverflowHook( TaskHandle_t xTask,
 //                                     char *pcTaskName ){
-//     printf("Task stack overflow: %s\n", pcTaskName);
+//     TRACE_PRINTF("Task stack overflow: %s\n", pcTaskName);
 //     vTaskSuspendAll();  
 //     //__BKPT(5);                                 
 // }
@@ -339,15 +413,15 @@ int main( void )
 #endif
 
 #if ( portSUPPORT_SMP == 1 ) && ( configNUM_CORES == 2 )
-    printf("Starting %s on both cores:\n", rtos_name);
+    TRACE_PRINTF("Starting %s on both cores:\n", rtos_name);
 
     vLaunch();
 #elif ( RUN_FREE_RTOS_ON_CORE == 1 )
-    printf("Starting %s on core 1:\n", rtos_name);
+    TRACE_PRINTF("Starting %s on core 1:\n", rtos_name);
     multicore_launch_core1(vLaunch);
     while (true);
 #else
-    printf("Starting %s on core 0:\n", rtos_name);
+    TRACE_PRINTF("Starting %s on core 0:\n", rtos_name);
     vLaunch();
 #endif
     return 0;

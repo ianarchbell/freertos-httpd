@@ -14,8 +14,8 @@
 #include "ff_stdio.h"
 
 #include "idb_router.h"
-
 #include "idb_hardware.h"
+#include "idb_config.h"
 
 #define DEVICENAME "sd0"
 #define MOUNTPOINT "/sd0"
@@ -49,7 +49,7 @@ int printJSONHeaders(char* buffer, int count){
     strcpy(buffer, "HTTP/1.1 200 OK\n");
     strcat(buffer, "Content-Type: application/json\n");
     sprintf(buffer+strlen(buffer), "Content-Length: %d\n\n", count);
-    printf(buffer);
+    //TRACE_PRINTF(buffer);
     return strlen(buffer);
 }
 
@@ -63,7 +63,7 @@ void returnTemperature(NameFunction* ptr, char* buffer, int count){
     if (buffer){
         char buf[64];
         float temperature = getCoreTemperature(TEMPERATURE_UNITS);
-        printf("Onboard temperature =  %.3g %c\n", (double)temperature, TEMPERATURE_UNITS);
+        TRACE_PRINTF("Onboard temperature =  %.3g %c\n", (double)temperature, TEMPERATURE_UNITS);
     
         // Output JSON very simply
         int len = sprintf(buf, "{\"temperature\": %.3g,\"temperature units\": \"%c\"}", (double)temperature, TEMPERATURE_UNITS);
@@ -90,7 +90,7 @@ int getSetValue(const char* uri){
     if (subString == NULL)
         return -1;
     else{
-        //printf("Got LED uri value %s", subString2);
+        //TRACE_PRINTF("Got LED uri value %s", subString2);
         return atoi(subString);
     }
 }
@@ -101,7 +101,7 @@ int getSetValue(const char* uri){
  * 
 */
 void returnLED(NameFunction* ptr, char* buffer, int count){
-    //printf("Getting LED value");
+    //TRACE_PRINTF("Getting LED value");
 
     int led = cyw43_arch_gpio_get(CYW43_WL_GPIO_LED_PIN);
     if (buffer){
@@ -126,7 +126,7 @@ void returnLED(NameFunction* ptr, char* buffer, int count){
 void setLED(NameFunction* ptr, char* buffer, int count, const char* uri){
 
     int value = getSetValue(uri);
-    //printf("Setting LED value %d", value);
+    //TRACE_PRINTF("Setting LED value %d", value);
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, value);
     // if (buffer){ 
     //     char buff[64];   
@@ -178,7 +178,7 @@ int getGPIO(const char* uri){
     if (subString == NULL)
         return -1;
     else{
-        //printf("Got GPIO number %s\n", subString2);
+        //TRACE_PRINTF("Got GPIO number %s\n", subString2);
         return atoi(subString);
     }
 }
@@ -201,7 +201,7 @@ int getGPIOValue(const char* uri){
     if (subString2 == NULL)
         return -1;
     else{    
-        //printf("Got GPIO value %s\n", subString3);
+        //TRACE_PRINTF("Got GPIO value %s\n", subString3);
         return atoi(subString2);
     }
 }
@@ -218,7 +218,7 @@ void returnGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin){
     if (buffer){
         char buff[64];
         // Output JSON very simply
-        //printf("Returning GPIO status %d", gpio_pin);
+        //TRACE_PRINTF("Returning GPIO status %d", gpio_pin);
         int len = snprintf(buff, sizeof buff, "{\"%d\" : %d}", gpio_pin, gpio_value);
         printJSONHeaders(buffer, len);
         if(strlen(buffer) + len < count){
@@ -239,11 +239,11 @@ void gpio(NameFunction* ptr, char* buffer, int count, const char* uri){
     int GPIOpin = getGPIO(uri);
     int value = getGPIOValue(uri);
     if(value != -1){
-        //printf("Setting GPIO value %d, %d\n", GPIOpin, value);
+        //TRACE_PRINTF("Setting GPIO value %d, %d\n", GPIOpin, value);
         setGPIO(ptr, buffer, count, GPIOpin, value);
     }
     else{
-        //printf("Returning GPIO value %d\n", GPIOpin);
+        //TRACE_PRINTF("Returning GPIO value %d\n", GPIOpin);
         returnGPIO(ptr, buffer, count, GPIOpin);
     }
 }
@@ -292,7 +292,7 @@ FF_FILE* openLogFile(const char* name){
     FF_Disk_t *pxDisk = NULL;
     
     if (!mount(&pxDisk, DEVICENAME, MOUNTPOINT)){
-        printf("Failed to mount %s as %s", DEVICENAME, MOUNTPOINT);
+        TRACE_PRINTF("Failed to mount %s as %s", DEVICENAME, MOUNTPOINT);
     }
 
     int n = snprintf(buffer, sizeof buffer, "%s/data/%s", MOUNTPOINT, name);                    
@@ -300,13 +300,13 @@ FF_FILE* openLogFile(const char* name){
     // TODO - not sure this is needed here as we'll already have this directory structure
     if (-1 == mkdirhier(buffer) &&
         stdioGET_ERRNO() != pdFREERTOS_ERRNO_EEXIST) {
-        printf("failed to set directory");
+        TRACE_PRINTF("failed to set directory");
         return NULL;
     }
-    printf("Mounted disk to read log file\n");
+    TRACE_PRINTF("Mounted disk to read log file\n");
 
     snprintf(buffer + n, sizeof buffer - n, "/log_data.csv");
-    printf("Opening log file: %s\n", buffer);  
+    TRACE_PRINTF("Opening log file: %s\n", buffer);  
     FF_FILE* px = ff_fopen(buffer, "r");
     return px;
 }
@@ -323,7 +323,7 @@ void readLog(const char* name, char* jsonBuffer, int count){
     Measurement readings[MAXREADINGS];
     Measurement reading;
 
-    //printf("Buffer length: %d, name: %s\n", count, name);
+    //TRACE_PRINTF("Buffer length: %d, name: %s\n", count, name);
 
     FF_FILE *pxFile = openLogFile(name);
 
@@ -331,7 +331,7 @@ void readLog(const char* name, char* jsonBuffer, int count){
     if (pxFile){
         char buffer[128];
 
-        printf("Log file open\n");
+        TRACE_PRINTF("Log file open\n");
         int i = 0;
 
         sprintf(jsonBuffer, "[");
@@ -353,14 +353,14 @@ void readLog(const char* name, char* jsonBuffer, int count){
             }
         }
 
-        printf("Reading log file records\n");
+        TRACE_PRINTF("Reading log file records\n");
         // now positioned at last n records
         while(ff_fgets(buffer, sizeof(buffer), pxFile)){
             if (i >= MAXREADINGS)
                 break;
             getData(buffer, &reading);
             memcpy(&readings[i], &reading, sizeof(reading));
-            //printf("Reading [%d] : Date: %s, Temperature: %s\n", i, readings[i].date_time, readings[i].temperature );  
+            //TRACE_PRINTF("Reading [%d] : Date: %s, Temperature: %s\n", i, readings[i].date_time, readings[i].temperature );  
             if (bufferPos < count){          
                 len = snprintf(jsonBuffer+bufferPos, count-bufferPos, "{\"date\": %s, \"temperature\": %s, \"temperature units\": \"%c\"}, ", 
                                                 readings[i].date_time, readings[i].temperature, 'F');
@@ -387,13 +387,13 @@ void readLogWithDate(NameFunction* ptr, char* buffer, int count, const char* uri
     #define JSONBUFFSIZE 1460
     
     char* logDate = pvPortMalloc(MINBUFSIZE);
-     if (logDate){
+    if (logDate){
         char* buf = pvPortMalloc(JSONBUFFSIZE);  
         if (buf){
             getLogDate(uri, logDate, MINBUFSIZE);
-            //printf("Log date: %s\n", logDate);
+            //TRACE_PRINTF("Log date: %s\n", logDate);
             readLog(logDate, buf, JSONBUFFSIZE-MINBUFSIZE); // should be enough for the header
-            //printf("Response from readLog: %s\n", buf);
+            //TRACE_PRINTF("Response from readLog: %s\n", buf);
             int len = strlen(buf);
             int hdrLen = printJSONHeaders(buffer, len);
             strcat(buffer+hdrLen, buf);
@@ -415,7 +415,7 @@ void readLogWithDate(NameFunction* ptr, char* buffer, int count, const char* uri
  * 
 */
 void success(NameFunction* ptr, char* buffer, int count, char* uri){
-    printf("Success\n");
+    TRACE_PRINTF("Success\n");
     char buff[64];
     int len = sprintf(buff, "%s", "{\"success\" : true}");
     printJSONHeaders(buffer, len); // print out headers with no body
@@ -433,7 +433,7 @@ void success(NameFunction* ptr, char* buffer, int count, char* uri){
  * 
 */
 void failure(NameFunction* ptr, char* buffer, int count, char* uri){
-    printf("Failure\n");
+    TRACE_PRINTF("Failure\n");
     char buff[64];
     int len = sprintf(buff, "%s", "{\"success\" : false}");
     printJSONHeaders(buffer, len); // print out headers with no body
@@ -471,7 +471,7 @@ NameFunction routes[] =
  * 
 */
 NameFunction* parseExact(const char* name, int routeType){
-    //printf("Parsing exact route : %s\n", name);
+    //TRACE_PRINTF("Parsing exact route : %s\n", name);
     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
     {
         if (ptr->routeType != routeType)
@@ -492,7 +492,7 @@ NameFunction* parsePartialMatch(const char* name, int routeType){
 
     char buff[64];
     
-    //printf("Parsing partial route : %s\n", name);
+    //TRACE_PRINTF("Parsing partial route : %s\n", name);
     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
     {
         if (ptr->routeType != routeType)
@@ -503,7 +503,7 @@ NameFunction* parsePartialMatch(const char* name, int routeType){
         buff[sizeof(buff)-1] = '\0';  // Ensure null if truncated
         const char* tok = strtok(buff, "/"); // start of route
         if(!strncmp(tok, name+1, strlen(tok))) { // first token must match
-            //printf("Token: %s\n", tok);
+            //TRACE_PRINTF("Token: %s\n", tok);
             return ptr;
         }
     }
@@ -523,9 +523,9 @@ NameFunction* isRoute(const char* name, int routeType){
         ptr = parsePartialMatch(name, routeType);
     }
     if (ptr)
-        printf("In route table\n");
+        TRACE_PRINTF("In route table\n");
     else
-        printf("Not in route table\n");    
+        TRACE_PRINTF("Not in route table\n");    
     return ptr;  
 }
 
@@ -537,11 +537,11 @@ NameFunction* isRoute(const char* name, int routeType){
 */
 void route(NameFunction* ptr, char* buffer, int count, char* uri){
     if (buffer && count > 0 && uri){       
-        printf("Routing %s\n", uri);
+        TRACE_PRINTF("Routing %s\n", uri);
         ptr->routeFunction(ptr, buffer, count, uri);
         
         if (uri){
-            printf("routed uri: %s\n", uri);
+            TRACE_PRINTF("routed uri: %s\n", uri);
             // vPortFree(ptr->uri); // no need to free it is up to the caller
             // ptr->uri = NULL;
         }
@@ -550,9 +550,9 @@ void route(NameFunction* ptr, char* buffer, int count, char* uri){
         }
     }
     else{
-        printf("no buffer, can't route\n");
+        TRACE_PRINTF("no buffer, can't route\n");
     }
-    //printf("returned from route\n");
+    //TRACE_PRINTF("returned from route\n");
 }
 
 
