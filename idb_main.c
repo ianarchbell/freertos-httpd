@@ -69,6 +69,7 @@
 #define ROUTE_TEST IDB_ROUTE_TEST
 #define WIFI_SCAN IDB_WIFI_SCAN
 #define WIFI_SCAN_COUNT IDB_WIFI_SCAN_COUNT
+#define WORLD_TIME_API IDB_WORLD_TIME_API
 
 /**
  * Used to get local time zone
@@ -148,10 +149,14 @@ void getLocalTime(char* buffer){
     //TRACE_PRINTF("Before second json\n");
     json_t const* abbrevProperty = json_getProperty( parent, "abbreviation" );
     if ( abbrevProperty == NULL ) 
-        TRACE_PRINTF("json failure\n");
+        TRACE_PRINTF("json failure to get local time zone name\n");
+    json_t const* utc_offset_property = json_getProperty( parent, "utc_offset" );    
+    if ( utc_offset_property == NULL ) 
+        TRACE_PRINTF("json failure to get local time zone UTC offset\n");
     //TRACE_PRINTF("Before last json\n");    
     char const* abbreviation = json_getValue( abbrevProperty );
-    TRACE_PRINTF("Local Time Zone: %s\n", abbreviation);
+    char const* utc_offset = json_getValue( utc_offset_property );
+    TRACE_PRINTF("Local Time Zone: %s, UTC offset: %s\n", abbreviation, utc_offset);
     
 }
 
@@ -203,21 +208,6 @@ void wifi_scan(){
 #endif
     }
 }
-
-
-
-/**
- * 
- * Callback when network status changes
- * 
-*/
-// static void netif_status_callback(struct netif *netif)
-// {
-//     TRACE_PRINTF("netif status changed %s\n", ip4addr_ntoa(netif_ip4_addr(netif)));
-//     int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
-//     TRACE_PRINTF("Link status: %d\n", status);
-
-// }
 
 /**
  * 
@@ -333,9 +323,10 @@ void main_task(__unused void *params) {
     create_checkup_timer();
 #endif
     getNTPtime(&setRTC); // get UTC time
-
-    //getHTTPClientResponse(HOST, URL_REQUEST, &getLocalTime); // get local time - this requires Peter Harper's PICO-SDK
-
+#if WORLD_TIME_API
+// this requires the dev branch of PICO-SDK and there is an example in PICO-EXAMPLES branch 'origin/add_http_example'
+    getHTTPClientResponse(HOST, URL_REQUEST, &getLocalTime); // get local time - this requires Peter Harper's PICO-SDK
+#endif
     httpd_init();
 
     bool rc = logger_init();

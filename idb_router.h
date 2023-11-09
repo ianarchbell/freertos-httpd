@@ -10,8 +10,7 @@ typedef struct NameFunction_struct
     void (*routeFunction)(void*, char*, int, char*);
     int routeType;
     char* uri;
-}
-NameFunction;
+} NameFunction;
 
 /* Choose 'C' for Celsius or 'F' for Fahrenheit. */
 #define TEMPERATURE_UNITS 'F'

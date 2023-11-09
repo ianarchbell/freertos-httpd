@@ -169,7 +169,7 @@ httpd_post_finished(void *connection, char *response_uri, u16_t response_uri_len
 {
 
   /* default page is "JSON failure" */
- //snprintf(response_uri, response_uri_len, "/failure");
+ snprintf(response_uri, response_uri_len, "/failure");
  if (current_connection == connection) {
    if (POST_uri) {
       printf("POSTing route uri: %s\n", POST_uri);
@@ -177,7 +177,7 @@ httpd_post_finished(void *connection, char *response_uri, u16_t response_uri_len
       if(routeFunction){
         char buffer[128];
         route(routeFunction, buffer, sizeof buffer, POST_uri);
-        //snprintf(response_uri, response_uri_len,"index.shtml");
+        snprintf(response_uri, response_uri_len,"/success");
      }
       vPortFree(POST_uri);
       POST_uri = NULL;

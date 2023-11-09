@@ -46,6 +46,12 @@ static bool init = false;
 #define DEVICENAME "sd0"
 #define MOUNTPOINT "/sd0"
 
+typedef struct Extension
+{
+    NameFunction* nameFunction;;
+    char* uri;
+} Extension;
+
 /**
  * 
  * fs_open_custom is called by fs_open if LWIP_HTTPD_CUSTOM_FILES 1
@@ -103,13 +109,13 @@ int fs_open_custom(struct fs_file *file, const char *name){
         file->flags |= FS_FILE_FLAGS_HEADER_INCLUDED; // we are now providing our own headers
         file->flags |= FS_FILE_FLAGS_CUSTOM;
         file->flags |= FS_FILE_FLAGS_ROUTE; // not used in fs.c
-        file->pextension = fun_ptr; // store the handler for read
-        if(fun_ptr->uri != NULL){
-            panic("fun_ptr should be null: %s\n", fun_ptr->uri);
-        }
-        fun_ptr->uri = pvPortMalloc(strlen(name)+1);
-        if(fun_ptr->uri)
-            strcpy(fun_ptr->uri, name);
+        
+        Extension* pext = pvPortMalloc(sizeof(Extension));
+        file->pextension = pext; // store the handler for read
+        pext->nameFunction = fun_ptr;
+        pext->uri = pvPortMalloc(strlen(name)+1);
+        if(pext->uri)
+            strcpy(pext->uri, name);
         else
             panic("Failed to allocate uri\n");    
         file->len = MAX_ROUTE_LEN; // max len
@@ -177,10 +183,11 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
         }
     }
     else{
-        NameFunction* fun_ptr = file->pextension;
+        Extension* pext = file->pextension;
+        NameFunction* fun_ptr = pext->nameFunction;
         if (fun_ptr){
-            TRACE_PRINTF("fs_read_custom : executing route %s, uri: %s\n", fun_ptr->routeName, fun_ptr->uri);
-            route(fun_ptr, buffer, count, fun_ptr->uri);
+            TRACE_PRINTF("fs_read_custom : executing route %s, uri: %s\n", fun_ptr->routeName, pext->uri);
+            route(fun_ptr, buffer, count, pext->uri);
             //TRACE_PRINTF("fs_read_custom : route response:\n%s\n", buffer);
             br = strlen(buffer);
             //TRACE_PRINTF("fs_read_custom : route response length: %u\n", br);
@@ -207,11 +214,13 @@ void fs_close_custom(struct fs_file *file){
         ff_fclose(file->pextension);
     }
     else{
-        NameFunction* fun_ptr = file->pextension;
-        if (fun_ptr->uri){
-            vPortFree(fun_ptr->uri);
-            fun_ptr->uri = NULL;
-        }
+        Extension* pext = file->pextension;
+        if(!pext)
+            panic("No Extension struct\n");
+        if(!pext->uri)
+            panic("No URI\n");
+        vPortFree(pext->uri);
+        vPortFree(pext);
         file->pextension = 0;
     }
     //TRACE_PRINTF("closed custom file\n");
