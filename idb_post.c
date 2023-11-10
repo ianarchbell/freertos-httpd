@@ -19,9 +19,9 @@
 #error This needs LWIP_HTTPD_SUPPORT_POST
 #endif
 
-#define TOKEN_VALUE_BUFSIZE 16
-#define URI_BUFSIZE 64
-#define MAX_TOKEN_SIZE 64
+#define TOKEN_VALUE_BUFSIZE 128
+#define URI_BUFSIZE 128
+#define MAX_TOKEN_SIZE 128
 
 static void *current_connection;
 static NameFunction* current_nameFunction;
@@ -71,8 +71,46 @@ httpd_post_begin(void *connection, const char *uri, const char *http_request,
   return ERR_VAL;
 }
 
-char*
-getTokenValue(struct pbuf *p, const char* token)
+int url_decode(char* out, const char* in)
+{
+    static const char tbl[256] = {
+        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+         0, 1, 2, 3, 4, 5, 6, 7,  8, 9,-1,-1,-1,-1,-1,-1,
+        -1,10,11,12,13,14,15,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+        -1,10,11,12,13,14,15,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1
+    };
+    char c, v1, v2, *beg=out;
+    if(in != NULL) {
+        while((c=*in++) != '\0') {
+            if(c == '%') {
+                if((v1=tbl[(unsigned char)*in++])<0 || 
+                   (v2=tbl[(unsigned char)*in++])<0) {
+                    *beg = '\0';
+                    return -1;
+                }
+                c = (v1<<4)|v2;
+            }
+            *out++ = c;
+        }
+    }
+    *out = '\0';
+    return 0;
+}
+
+void
+getTokenValue(char* decoded_value, struct pbuf *p, const char* token)
 {
   char tokenBuf[MAX_TOKEN_SIZE];
 
@@ -97,10 +135,9 @@ getTokenValue(struct pbuf *p, const char* token)
       char buf_token_value[TOKEN_VALUE_BUFSIZE];
       char *token_value = (char *)pbuf_get_contiguous(p, buf_token_value, len_token_value, len_token_value, token_value_index);
       token_value[len_token_value] = 0;
-      return token_value;
+      url_decode(decoded_value, token_value);
     }
   }
-  return NULL;
 }
 
 err_t
@@ -135,17 +172,18 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
       token_ptr = prefix_ptr;
     }
     while(token_ptr){
-      char* token_value;
       
       token_ptr1 =  strtok(NULL, "/");
       //printf("token_ptr1: %s\n", token_ptr1); 
       if(token_ptr1)
         token_ptr = token_ptr1;
       //printf("token_ptr: %s\n", token_ptr);  
-      token_value = getTokenValue(p, token_ptr);
+      char* token_value = pvPortMalloc(URI_BUFSIZE);
+      getTokenValue(token_value, p, token_ptr);
       //åprintf("token_value: %s\n", token_value);  
       strcat(POST_uri, "/");
       strcat(POST_uri, token_value);
+      vPortFree(token_value);
       token_ptr = strtok(NULL, ":");  
     }
   }
@@ -160,8 +198,7 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
 
 /**
  * 
- * ! We are getting an invalid heap for an as yet unknown reason when we return a uri 
- * ! So currently the response is a 404
+ * Free up the uri and return success
  * 
 */
 void

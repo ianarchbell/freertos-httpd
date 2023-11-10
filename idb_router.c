@@ -250,6 +250,131 @@ void gpio(NameFunction* ptr, char* buffer, int count, const char* uri){
 
 /**
  * 
+ * Returns the value of all the GPIOs in json
+ * 
+*/
+void returnGPIOs(NameFunction* ptr, char* buffer, int count){
+    if (buffer){   
+        char buf[512]; 
+        strcpy(buf, "[");
+        int offset = 1;
+        int gpio_values[27]; 
+        for(int i = 0; i < 27; i ++){       
+            gpio_values[i] = (int)gpio_get(i);
+            int len = snprintf(buf + offset, sizeof buf, "{\"%d\" : %d}", i, gpio_values[i]);
+            offset += len;
+        }
+        strcat(buf, "]");
+        offset += 1;
+        
+        printJSONHeaders(buffer, offset);
+
+        if(strlen(buffer) + offset < count){
+            strcat(buffer, buf);
+        }
+        else{
+            panic("buffer too small for returnGPIOs\n");
+        }
+    }
+}
+
+/**
+ * 
+ * Gets the next token based on a single character delimiter
+ * Returns the next token in ns if found, returns empty string if not found
+ * Return value is a pointer to the delimiter
+*/
+char* getNextValue(char* ns, char* s, char delim){   
+    char* p1 = s;
+
+    char* p2 = strchr(p1, ',');
+    if (p2 != NULL){
+        if(p2-p1 > 0){
+            memcpy(ns, p1, p2-p1);
+            ns[p2-p1] = '\0';
+            TRACE_PRINTF("Found value: %s\n", ns);
+        }
+        else{
+            ns[0] = '\0';
+            TRACE_PRINTF("Empty value: %s\n", ns);
+        }  
+    }           
+    return p2;    
+}
+
+/**
+ * 
+ * Returns the state of all the GPIOs in an array
+ * 
+*/
+int extractGPIOValues(int values[27], const char* uri){
+
+    printf("Extracting GPIO values: %s\n", uri);
+    char buff[128]; 
+    char value[16];
+
+    strncpy(buff, uri, sizeof(buff));
+    buff[sizeof(buff)-1] = '\0';  // Ensure null if truncated
+    TRACE_PRINTF("buff: %s\n", buff);
+    char* subString = strtok(buff,"/");       // find the first /
+    if (subString == NULL)
+        return -1;
+    char* subString2 = strtok(NULL,"/");       // find the /
+    TRACE_PRINTF("subString2: %s\n", subString2);
+    if (subString2 == NULL)
+        return -1;
+    int i = 0;
+    TRACE_PRINTF("subString2: %s\n", subString2);
+    subString2 = getNextValue((char*)&value, subString2, ',');
+    do  {  
+        TRACE_PRINTF("Value from getNextValue: %s\n", value);
+        if(strlen(value) > 0){
+            TRACE_PRINTF("Setting values[%d]: %s\n", i, value);
+            values[i] = atoi(value);
+        }
+        else{
+            TRACE_PRINTF("Ignoring value for GPIO %d\n", i);
+            values[i] = -1;    
+        }
+        i++;
+        subString2++; 
+        subString2 = getNextValue((char*)&value, subString2, ',');
+    } while (strlen(subString2) > 0);
+    return 0;
+}
+
+/**
+ * 
+ * Handles gpio array /gpioarray/0,1,1,0... from 0-26
+ * Leave out the values you want unchanged
+ * 
+*/
+void gpioArray(NameFunction* ptr, char* buffer, int count, const char* uri){
+    #define GPIOMAX 27
+    int values[GPIOMAX];
+
+    for (int i = 0; i < GPIOMAX ; i++){  // default to ignore
+        values[i] = -1; 
+    } 
+
+    int ret = extractGPIOValues((int*)&values, uri);
+    if (ret == -1){
+        TRACE_PRINTF("Failed to extract values\n");
+    }
+
+    for(int i = 0; i < 27; i ++){     
+       
+        if (values[i] != -1){
+            TRACE_PRINTF("Setting GPIO %d to %d\n", i, values[i]);
+             setGPIO(ptr, buffer, count, i, values[i]);
+        }
+        else
+            TRACE_PRINTF("Ignoring GPIO %d\n", i);    
+    }    
+}
+
+/**
+ * 
  * Helper to create a reading from a supplied buffer
  * 
 */
@@ -459,7 +584,9 @@ NameFunction routes[] =
     { "/led", (void*) *returnLED, HTTP_GET, NULL }, 
     { "/led/:value", (void*) *setLED, HTTP_POST, NULL }, 
     { "/gpio/:gpio", (void*) *gpio, HTTP_GET, NULL },  
-    { "/gpio/:gpio/:value", (void*) *gpio, HTTP_POST, NULL }, 
+    { "/gpio/:gpio/:value", (void*) *gpio, HTTP_POST, NULL },
+    { "/gpioarray", (void*) *returnGPIOs, HTTP_GET, NULL },  
+    { "/gpioarray/:values", (void*) *gpioArray, HTTP_POST, NULL }, 
     { "/readlog/:date", (void*) *readLogWithDate, HTTP_GET, NULL },
     { "/failure", (void*) *failure, HTTP_GET || HTTP_POST, NULL},
     { "/success", (void*) *success, HTTP_GET || HTTP_POST, NULL},
@@ -491,6 +618,12 @@ NameFunction* parseExact(const char* name, int routeType){
 NameFunction* parsePartialMatch(const char* name, int routeType){
 
     char buff[64];
+    char buff2[64];
+
+    strncpy(buff2, name, sizeof(buff2)); // copy for strtok
+    buff2[sizeof(buff2)-1] = '\0';  // Ensure null if truncated
+    const char* nameTok = strtok(buff2, "/"); // start of route
+
     
     //TRACE_PRINTF("Parsing partial route : %s\n", name);
     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
@@ -499,11 +632,12 @@ NameFunction* parsePartialMatch(const char* name, int routeType){
             continue;
         if(!strstr(ptr->routeName, ":")) // can't partial match if no variable
             continue;
-        strncpy(buff, ptr->routeName, sizeof(buff));
+        strncpy(buff, ptr->routeName, sizeof(buff)); // copy for strtok
         buff[sizeof(buff)-1] = '\0';  // Ensure null if truncated
         const char* tok = strtok(buff, "/"); // start of route
-        if(!strncmp(tok, name+1, strlen(tok))) { // first token must match
-            //TRACE_PRINTF("Token: %s\n", tok);
+        TRACE_PRINTF("Tok: %s, name: %s\n", tok,nameTok);
+        if(!strcmp(tok, nameTok)) { // first token must be an exact match
+            TRACE_PRINTF("Token match: %s, routeName: %s\n", tok, nameTok);
             return ptr;
         }
     }
