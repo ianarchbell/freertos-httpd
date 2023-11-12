@@ -406,7 +406,7 @@
 
         var sliderRect = slider.getBoundingClientRect();
         var newPosition = event.clientX - sliderRect.left;
-        var maxPosition = sliderRect.width - thumb.offsetWidth;
+        var maxPosition = sliderRect.width;
 
         if (newPosition < 0) {
           newPosition = 0;
@@ -416,9 +416,11 @@
 
         thumb.style.left = newPosition + 'px';
 
+        var maxValue = 10; // Depends on application
+
         // Calculate the setting value (1 to 100)
         var percentage = (newPosition / maxPosition) * 100;
-        var value = Math.round(percentage);
+        var value = Math.round(maxValue * percentage)/100;
         settingValue.textContent = value;
       }
 
