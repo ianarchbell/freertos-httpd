@@ -136,6 +136,7 @@ getTokenValue(char* decoded_value, struct pbuf *p, const char* token)
       char *token_value = (char *)pbuf_get_contiguous(p, buf_token_value, len_token_value, len_token_value, token_value_index);
       token_value[len_token_value] = 0;
       url_decode(decoded_value, token_value);
+      printf("Decoded: %s, original: %s\n", decoded_value, token_value);
     }
   }
 }

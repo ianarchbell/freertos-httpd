@@ -17,6 +17,8 @@
 #include "idb_hardware.h"
 #include "idb_config.h"
 
+#include "tiny-json.h"
+
 #define DEVICENAME "sd0"
 #define MOUNTPOINT "/sd0"
 
@@ -285,8 +287,7 @@ void returnGPIOs(NameFunction* ptr, char* buffer, int count){
  * Return value is a pointer to the delimiter
 */
 char* getNextValue(char* ns, char* s, char delim){   
-    char* p1 = s;
-
+    const char* p1 = s;
     char* p2 = strchr(p1, ',');
     if (p2 != NULL){
         if(p2-p1 > 0){
@@ -304,8 +305,30 @@ char* getNextValue(char* ns, char* s, char delim){
 
 /**
  * 
- * Returns the state of all the GPIOs in an array
+ * Returns the state of all the GPIOs in a passed array of integers
+ * Returns -1 on failure
+*/
+int extractJSONGPIOValues(int values[27], char* parms){
+
+    enum { MAX_FIELDS = 26 };
+    json_t pool[ MAX_FIELDS ];
+    //TRACE_PRINTF("Before first json\n");
+    json_t const* parent = json_create( parms, pool, MAX_FIELDS );
+    if ( parent == NULL ) 
+        TRACE_PRINTF("EXIT_FAILURE\n");
+    for(int i = 0; i < 27; i++){  
+        char aGpio[8];  
+        sprintf(aGpio, "%d", i);
+        json_t const* gpioProperty = json_getProperty( parent, aGpio );
+        if (gpioProperty != NULL)
+            values[i] = atoi(json_getValue(gpioProperty ));
+    }     
+}
+
+/**
  * 
+ * Returns the state of all the GPIOs in a passed array of integers
+ * Returns -1 on failure
 */
 int extractGPIOValues(int values[27], const char* uri){
 
@@ -315,14 +338,16 @@ int extractGPIOValues(int values[27], const char* uri){
 
     strncpy(buff, uri, sizeof(buff));
     buff[sizeof(buff)-1] = '\0';  // Ensure null if truncated
+
     TRACE_PRINTF("buff: %s\n", buff);
-    char* subString = strtok(buff,"/");       // find the first /
+    const char* subString = strtok(buff,"/");    // find the first /
     if (subString == NULL)
         return -1;
-    char* subString2 = strtok(NULL,"/");       // find the /
+    char* subString2 = strtok(NULL,"/");         // find the second /
     TRACE_PRINTF("subString2: %s\n", subString2);
     if (subString2 == NULL)
         return -1;
+
     int i = 0;
     TRACE_PRINTF("subString2: %s\n", subString2);
     subString2 = getNextValue((char*)&value, subString2, ',');
@@ -341,6 +366,54 @@ int extractGPIOValues(int values[27], const char* uri){
         subString2 = getNextValue((char*)&value, subString2, ',');
     } while (strlen(subString2) > 0);
     return 0;
+}
+
+/**
+ * 
+ * Handles gpio array /gpioarray/0,1,1,0... from 0-26
+ * Leave out the values you want unchanged
+ * 
+*/
+int gpioJSONArray(NameFunction* ptr, char* buffer, int count, const char* uri){
+    #define GPIOMAX 27
+    int values[GPIOMAX];
+
+    for (int i = 0; i < GPIOMAX ; i++){  // default to ignore
+        values[i] = -1; 
+    } 
+
+    // extract the parmms from the uri
+    // then extract the json values
+    printf("Extracting GPIO values: %s\n", uri);
+    char buff[128]; 
+    char value[16];
+
+    strncpy(buff, uri, sizeof(buff));
+    buff[sizeof(buff)-1] = '\0';  // Ensure null if truncated
+
+    TRACE_PRINTF("buff: %s\n", buff);
+    const char* subString = strtok(buff,"/");    // find the first /
+    if (subString == NULL)
+        return -1;
+    char* subString2 = strtok(NULL,"/");         // find the second /
+    TRACE_PRINTF("subString2: %s\n", subString2);
+    if (subString2 == NULL)
+        return -1;
+
+    int ret = extractJSONGPIOValues((int*)&values, subString2);
+    if (ret == -1){
+        TRACE_PRINTF("Failed to extract values\n");
+    }
+
+    for(int i = 0; i < 27; i ++){     
+       
+        if (values[i] != -1){
+            TRACE_PRINTF("Setting GPIO %d to %d\n", i, values[i]);
+             setGPIO(ptr, buffer, count, i, values[i]);
+        }
+        else
+            TRACE_PRINTF("Ignoring GPIO %d\n", i);    
+    }    
 }
 
 /**
@@ -372,6 +445,7 @@ void gpioArray(NameFunction* ptr, char* buffer, int count, const char* uri){
             TRACE_PRINTF("Ignoring GPIO %d\n", i);    
     }    
 }
+
 
 /**
  * 
@@ -586,7 +660,8 @@ NameFunction routes[] =
     { "/gpio/:gpio", (void*) *gpio, HTTP_GET, NULL },  
     { "/gpio/:gpio/:value", (void*) *gpio, HTTP_POST, NULL },
     { "/gpioarray", (void*) *returnGPIOs, HTTP_GET, NULL },  
-    { "/gpioarray/:values", (void*) *gpioArray, HTTP_POST, NULL }, 
+    { "/gpiofixedarray/:values", (void*) *gpioArray, HTTP_POST, NULL }, 
+    { "/gpioarray/:values", (void*) *gpioJSONArray, HTTP_POST, NULL }, 
     { "/readlog/:date", (void*) *readLogWithDate, HTTP_GET, NULL },
     { "/failure", (void*) *failure, HTTP_GET || HTTP_POST, NULL},
     { "/success", (void*) *success, HTTP_GET || HTTP_POST, NULL},
