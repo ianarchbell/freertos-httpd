@@ -36,7 +36,10 @@ static char* print_time(){
 }
 
 #define print_log(f_, ...) printf("%s ", print_time()), printf((f_), ##__VA_ARGS__)/*, printf("\n")*/
-//#define TRACE_PRINTF(fmt, args...) // Disable tracing
+#if NDEBUG
+#define TRACE_PRINTF(fmt, args...) // Disable tracing
+#else
 #define TRACE_PRINTF print_log // Trace with printf
+#endif
 
 #endif 

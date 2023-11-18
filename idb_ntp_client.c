@@ -15,6 +15,7 @@
 #include "lwip/udp.h"
 
 #include "idb_ntp_client.h"
+#include "idb_config.h"
 
 void (*Callback)(NTP_T* npt, int status, time_t *result); // callback to receive time information
 
@@ -30,7 +31,7 @@ static void ntp_result(NTP_T* state, int status, time_t *result) {
     Callback(state, status, result);
     //if (status == 0 && result) {
         //struct tm *utc = gmtime(result);
-        //printf("got ntp response: %02d/%02d/%04d %02d:%02d:%02d\n", utc->tm_mday, utc->tm_mon + 1, utc->tm_year + 1900,
+        //TRACE_PRINTF("got ntp response: %02d/%02d/%04d %02d:%02d:%02d\n", utc->tm_mday, utc->tm_mon + 1, utc->tm_year + 1900,
         //       utc->tm_hour, utc->tm_min, utc->tm_sec);
     //}
 
@@ -63,28 +64,27 @@ static void ntp_request(NTP_T *state) {
 static int64_t ntp_failed_handler(alarm_id_t id, void *user_data)
 {
     NTP_T* state = (NTP_T*)user_data;
-    printf("ntp request failed\n");
+    TRACE_PRINTF("NTP request failed\n");
     ntp_result(state, -1, NULL);
     return 0;
 }
 
 // Call back with a DNS result
 static void ntp_dns_found(const char *hostname, const ip_addr_t *ipaddr, void *arg) {
-    printf("NTP DNS_found\n");
+    TRACE_PRINTF("NTP DNS_found\n");
     NTP_T *state = (NTP_T*)arg;
     if (ipaddr) {
         state->ntp_server_address = *ipaddr;
-        printf("NTP address %s\n", ipaddr_ntoa(ipaddr));
+        TRACE_PRINTF("NTP address %s\n", ipaddr_ntoa(ipaddr));
         ntp_request(state);
-    } else {
-        printf("NTP DNS request failed\n");
+    } else {TRACE_PRINTF("NTP DNS request failed\n");
         ntp_result(state, -1, NULL);
     }
 }
 
 // NTP data received
 static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t port) {
-    printf("NTP response received\n");
+    TRACE_PRINTF("NTP response received\n");
     NTP_T *state = (NTP_T*)arg;
     uint8_t mode = pbuf_get_at(p, 0) & 0x7;
     uint8_t stratum = pbuf_get_at(p, 1);
@@ -99,7 +99,7 @@ static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_ad
         time_t epoch = seconds_since_1970;
         ntp_result(state, 0, &epoch);
     } else {
-        printf("Invalid NTP response\n");
+        TRACE_PRINTF("Invalid NTP response\n");
         ntp_result(state, -1, NULL);
     }
     pbuf_free(p);
@@ -115,7 +115,7 @@ static NTP_T* ntp_init(void) {
     memset(state, 0x00, sizeof(NTP_T));
     state->ntp_pcb = udp_new_ip_type(IPADDR_TYPE_ANY);
     if (!state->ntp_pcb) {
-        printf("Failed to create pcb\n");
+        TRACE_PRINTF("Failed to create pcb\n");
         vPortFree(state);
         state = 0;
         return NULL;
@@ -131,10 +131,10 @@ void getNTPtime(void* callback) {
 
     NTP_T *state = ntp_init();
     if (!state){
-        printf("failed to initialize ntp\n");
+        TRACE_PRINTF("failed to initialize ntp\n");
         return;
     }
-    printf("Requesting NTP DNS\n");
+    TRACE_PRINTF("Requesting NTP DNS\n");
 
     cyw43_arch_lwip_begin();
     int err = dns_gethostbyname(NTP_SERVER, &state->ntp_server_address, ntp_dns_found, state);
@@ -142,10 +142,10 @@ void getNTPtime(void* callback) {
 
     state->dns_request_sent = true;
     if (err == ERR_OK) {
-        printf("DNS request for NTP server sent\n");
+        TRACE_PRINTF("DNS request for NTP server sent\n");
         ntp_request(state); // Cached result
     } else if (err != ERR_INPROGRESS) { // ERR_INPROGRESS means expect a callback
-        printf("DNS request failed\n");
+        TRACE_PRINTF("DNS request failed\n");
         ntp_result(state, -1, NULL);
     }
 

@@ -96,10 +96,10 @@ static TaskHandle_t th;
  * 
 */
 void setRTC(NTP_T* npt_t, int status, time_t *result){
-    printf("NTP callback received\n");
+    TRACE_PRINTF("NTP callback received\n");
     if (status == 0 && result) {
         struct tm *utc = gmtime(result);
-         printf("NTP response: %02d/%02d/%04d %02d:%02d:%02d\n", utc->tm_mday, utc->tm_mon + 1, utc->tm_year + 1900,
+        TRACE_PRINTF("NTP response: %02d/%02d/%04d %02d:%02d:%02d\n", utc->tm_mday, utc->tm_mon + 1, utc->tm_year + 1900,
                 utc->tm_hour, utc->tm_min, utc->tm_sec);
 
         // Start on Friday 5th of June 2020 15:45:00
@@ -134,7 +134,7 @@ void print_date(){
     char *datetime_str = &datetime_buf[0];
     rtc_get_datetime(&t);
     datetime_to_str(datetime_str, sizeof(datetime_buf), &t);
-    TRACE_PRINTF("\r%s      ", datetime_str);
+    printf("\r%s      ", datetime_str);
 }
 
 /**
@@ -222,24 +222,24 @@ void wifi_scan(){
 void start_wifi(){
 
         if (cyw43_arch_init()) {
-        TRACE_PRINTF("Failed to initialise Wi-Fi\n");
+        printf("Failed to initialise Wi-Fi\n");
         return;
     }
 
-    TRACE_PRINTF("Connecting to WiFi SSID: %s \n", WIFI_SSID);
+    printf("Connecting to WiFi SSID: %s \n", WIFI_SSID);
 
     cyw43_arch_enable_sta_mode();
     uint32_t pm;
     cyw43_wifi_get_pm(&cyw43_state, &pm);
     cyw43_wifi_pm(&cyw43_state, CYW43_DEFAULT_PM & ~0xf); // disable power management
-    TRACE_PRINTF("Connecting to WiFi...\n");
+    printf("Connecting to WiFi...\n");
 
     for(int i = 0;i<4;i++){
         if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_MIXED_PSK, 30000) == 0) {
-            TRACE_PRINTF("\nReady, preparing to run httpd at %s\n", ip4addr_ntoa(netif_ip4_addr(netif_list)));
+            printf("\nReady, preparing to run httpd at %s\n", ip4addr_ntoa(netif_ip4_addr(netif_list)));
             break;
         }
-        TRACE_PRINTF("Wi-Fi failed to start, retrying\n");
+        printf("Wi-Fi failed to start, retrying\n");
     }
     //cyw43_wifi_pm(&cyw43_state, pm); // reset power management
 }
@@ -320,7 +320,7 @@ void websocket_task(void *pvParameter)
 
     for (;;) {
         if (pcb == NULL || pcb->state != ESTABLISHED) {
-            printf("Connection closed, deleting task\n");
+            TRACE_PRINTF("Websocket connection closed, deleting task\n");
             break;
         }
 
@@ -351,7 +351,7 @@ void websocket_task(void *pvParameter)
  */
 void websocket_cb(struct tcp_pcb *pcb, uint8_t *data, u16_t data_len, uint8_t mode)
 {
-    printf("[websocket_callback]:\n%.*s\n", (int) data_len, (char*) data);
+    TRACE_PRINTF("[Websocket callback]:\n%.*s\n", (int) data_len, (char*) data);
 
     uint8_t response[2];
     uint16_t val;
@@ -387,9 +387,9 @@ void websocket_cb(struct tcp_pcb *pcb, uint8_t *data, u16_t data_len, uint8_t mo
  */
 void websocket_open_cb(struct tcp_pcb *pcb, const char *uri)
 {
-    printf("WS URI: %s\n", uri);
+    TRACE_PRINTF("WS URI: %s\n", uri);
     if (!strcmp(uri, "/stream")) {
-        printf("request for streaming\n");
+        TRACE_PRINTF("Websocket request for streaming\n");
         xTaskCreate(&websocket_task, "websocket_task", 256, (void *) pcb, 2, NULL);
     }
 }
