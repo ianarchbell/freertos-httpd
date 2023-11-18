@@ -226,7 +226,7 @@ void start_wifi(){
         return;
     }
 
-    printf("Connecting to WiFi SSID: %s \n", WIFI_SSID);
+    printf("\n\nConnecting to WiFi SSID: %s \n", WIFI_SSID);
 
     cyw43_arch_enable_sta_mode();
     uint32_t pm;
@@ -398,6 +398,7 @@ void httpd_task(void *pvParameters)
 {
     websocket_register_callbacks((tWsOpenHandler) websocket_open_cb, (tWsHandler) websocket_cb);       
     httpd_init();
+    printf("Web server initialized\n");
     for (;;){
         // ensure this is a lower priority than main task or that task will be blocked by this loop
     };
