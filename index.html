@@ -1,359 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neumorphic Controller Interface</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Arial', sans-serif;
+      background-color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
 
-<html>
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
-        <style>
-            #tempGauge{
-                width: 30%;
-                border: 20px solid white;
+    .neumorphic-container {
+      background-color: #f0f0f0;
+      border-radius: 20px;
+      box-shadow: 10px 10px 20px #d3d3d3, -10px -10px 20px #ffffff;
+      padding: 20px;
+      margin: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      flex-flow: row wrap;
+      justify-content: start;
+      align-items: top;
+    }
+
+    .menu {
+      width: 100%;
+      background-color: #f0f0f0;
+      border-radius: 20px;
+      box-shadow: 6px 6px 12px #d3d3d3, -6px -6px 12px #ffffff;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px;
+      margin-bottom: 20px;
+    }
+
+    .menu-item {
+      font-size: 16px;
+      font-weight: bold;
+      color: #555;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+
+    .menu-item:hover {
+      color: #007BFF;
+    }
+
+    .gauge-panel {
+      width: 45%;
+      margin: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-evenly;
+      background-color: #f0f0f0;
+      border-radius: 20px;
+      box-shadow: 6px 6px 12px #d3d3d3, -6px -6px 12px #ffffff;
+      min-width: 230px;
+    }
+    
+    .major-panel {
+      width: 50%;
+      margin: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-evenly;
+      background-color: #f0f0f0;
+      border-radius: 20px;
+      box-shadow: 6px 6px 12px #d3d3d3, -6px -6px 12px #ffffff;
+      min-width: 400px;
+    }
+    
+    .control-panel {
+      width: 350px;
+      height: 275px;
+      margin: 25px;
+      display: flex;
+      flex-direction: column;
+      align-items: left;
+      background-color: #f0f0f0;
+      border-radius: 20px;
+      box-shadow: 6px 6px 12px #d3d3d3, -6px -6px 12px #ffffff;
+      position: relative;
+      min-width: 230px;
+    }
+
+    .neumorphic-control {
+      width: 80%;
+      height: 50px;
+      background-color: #f0f0f0;
+      border-radius: 10px;
+      box-shadow: 6px 6px 12px #d3d3d3, -6px -6px 12px #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .slider-container {
+      display: flex;
+      align-items: center;
+/*       margin-bottom: 20px; /* Increased spacing */ 
+    }
+
+    .neumorphic-slider {
+      width: 150px;
+      height: 20px; 
+      border-radius: 10px;
+      background-color: #f0f0f0;
+      box-shadow: inset 6px 6px 12px #d3d3d3, inset -6px -6px 12px #ffffff;
+      position: relative; 
+      margin: 25px;
+    }
+
+    .slider-thumb {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: #f0f0f0;
+      box-shadow: 6px 6px 12px #d3d3d3, -6px -6px 12px #ffffff;
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+    }
+
+    .setting-label {
+      font-size: 16px;
+      color: #555;
+      margin-left: 20px;
+      margin-right: 30px; /* Increased spacing */
+    }
+
+    .setting-value {
+      font-size: 14px;
+      color: #555;
+    }
+
+    .chart {
+      width: 600px;
+      height: 300px;
+      margin: 30px;
+      background-color: #f0f0f0;
+      border-radius: 20px;
+      box-shadow: 6px 6px 12px #d3d3d3, -6px -6px 12px #ffffff;
+    }
+    
+    .gauge-container {
+      align-items: center;
+      float: left; 
+      display: flex;
+      flex-direction: column;
+      margin: 10px; /* Margin between gauges */
+      margin-top: 30px;
+      width: 240px; /* Set a specific width for each gauge container */
+      height: 250px;
+    }
+
+    canvas {
+      border-radius: 50%;
+      box-shadow: 5px 5px 10px #d3d3d3, -5px -5px 10px #ffffff;
+      object-fit:contain;
+    }
+
+    .gauge-label {
+      margin-top: 10px;
+      text-align: center;
+    }
+    
+    .neumorphic-switch-container {
+      display: flex;
+      align-items: center;
+            margin-left: 20px;
+    }
+
+    .switch-text {
+      font-size: 16px;
+      margin-right: 10px;
+    }
+    
+    .neumorphic-switch {
+      width: 60px;
+      margin: 20px;
+      height: 30px;
+      border-radius: 15px;
+      background-color: #f0f0f0;
+      box-shadow: 12px 12px 24px rgba(163, 177, 198, 0.7), -12px -12px 24px rgba(255, 255, 255, 0.9);
+      position: relative;
+      cursor: pointer;
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    .neumorphic-switch-inner {
+      width: 50%;
+      height: 100%;
+      border-radius: 15px;
+      background-color: #f0f0f0;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transition: left 0.3s;
+    }
+
+    .neumorphic-switch.active {
+      background-color: #4CAF50; /* Green color when switch is ON */
+      box-shadow: inset 8px 8px 16px rgba(50, 107, 71, 0.5), inset -8px -8px 16px rgba(255, 255, 255, 0.9);
+    }
+
+    .neumorphic-switch.active .neumorphic-switch-inner {
+      left: 50%;
+    }
+    .neumorphic-light-container {
+      display: flex;
+      align-items: center;
+      margin: 20px;
+    }
+
+    .light-label {
+      font-size: 16px;
+      margin-right: 10px;
+    }
+
+    .neumorphic-light {
+      margin-left: 32px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: #f0f0f0;
+      box-shadow: inset 5px 5px 10px rgba(163, 177, 198, 0.5), inset -5px -5px 10px rgba(255, 255, 255, 0.8);
+      transition: box-shadow 0.3s;
+    }
+
+    .neumorphic-light.active {
+      box-shadow: inset 8px 8px 16px rgba(50, 107, 71, 0.7), inset -8px -8px 16px rgba(255, 255, 255, 0.9);
+    }
+  </style>
+</head>
+<body>
+  <div class="neumorphic-container">
+    <div class="menu">
+      <div class="menu-item">Home</div>
+      <div class="menu-item">Settings</div>
+      <div class="menu-item">Logs</div>
+      <div class="menu-item">About</div>
+    </div>    
+
+    <div class="gauge-panel">
+    <div class="gauge-container">
+      <canvas id="gauge1"></canvas>
+      <div class="gauge-label">ADC1</div>
+    </div>
+
+    <div class="gauge-container">
+      <canvas id="gauge2"></canvas>
+      <div class="gauge-label">ADC2</div>
+    </div>
+
+    <div class="gauge-container">
+      <canvas id="gauge3"></canvas>
+      <div class="gauge-label">ADC3</div>
+    </div>
+
+    <div class="gauge-container">
+      <canvas id="gauge4"></canvas>
+      <div class="gauge-label">ADC4</div>
+    </div>
+
+    </div>
+	<div class="major-panel">
+    <div class="control-panel">
+    <div class="slider-container">
+      <div class="setting-label">Analog 1</div>
+      <div class="neumorphic-slider" id="slider1">
+        <div class="slider-thumb" id="thumb1"></div>
+      </div>
+      <div class="setting-value" id="AO1">0</div>
+    </div>
+
+    <div class="slider-container">
+      <div class="setting-label">Analog 2</div>
+      <div class="neumorphic-slider" id="slider2">
+        <div class="slider-thumb" id="thumb2"></div>
+      </div>
+      <div class="setting-value" id="AO2">0</div>
+    </div>
+
+    <div class="slider-container">
+      <div class="setting-label">Analog 3</div>
+      <div class="neumorphic-slider" id="slider3">
+        <div class="slider-thumb" id="thumb3"></div>
+      </div>
+      <div class="setting-value" id="AO3">0</div>
+    </div>
+
+    <div class="slider-container">
+      <div class="setting-label">Analog 4</div>
+      <div class="neumorphic-slider" id="slider4">
+        <div class="slider-thumb" id="thumb4"></div>
+      </div>
+      <div class="setting-value" id="AO4">0</div>
+    </div>
+    </div>
+    <div class="control-panel">
+    <div class="neumorphic-light-container">
+    <div class="light-label">Digital Input 1</div>
+    <div class="neumorphic-light" id="DI1"></div>
+    </div>
+    <div class="neumorphic-light-container">
+    <div class="light-label">Digital Input 2</div>
+    <div class="neumorphic-light" id="DI2"></div>
+    </div>
+    <div class="neumorphic-light-container">
+    <div class="light-label">Digital Input 3</div>
+    <div class="neumorphic-light" id="DI3"></div>
+    </div>
+    <div class="neumorphic-light-container">
+    <div class="light-label">Digital Input 4</div>
+    <div class="neumorphic-light" id="DI4"></div>
+    </div>
+	</div> 
+    <div class="control-panel">
+      <div class="neumorphic-switch-container">
+    	<div class="switch-text">Digital Output 1</div>
+    	<div class="neumorphic-switch" id="DO1" onclick="toggleSwitch(this);setState(this)">
+      	<div class="neumorphic-switch-inner"></div>
+  		</div>
+      </div>
+      <div class="neumorphic-switch-container">
+    	<div class="switch-text">Digital Output 2</div>
+    	<div class="neumorphic-switch" id="DO2" onclick="toggleSwitch(this);setState(this)">
+      	<div class="neumorphic-switch-inner"></div>
+  		</div>
+      </div>      
+      <div class="neumorphic-switch-container">
+    	<div class="switch-text">Digital Output 3</div>
+    	<div class="neumorphic-switch" id="DO3" onclick="toggleSwitch(this);setState(this)">
+      	<div class="neumorphic-switch-inner"></div>
+  		</div>
+      </div>      
+      <div class="neumorphic-switch-container">
+    	<div class="switch-text">Digital Output 4</div>
+    	<div class="neumorphic-switch" id="DO4" onclick="toggleSwitch(this);setState(this)">
+      	<div class="neumorphic-switch-inner"></div>
+  		</div>
+      </div>      
+  </div>
+      <div class="control-panel">
+      <div class="neumorphic-switch-container">
+    	<div class="switch-text">Digital Output 5</div>
+    	<div class="neumorphic-switch" id="DO5" onclick="toggleSwitch(this);setState(this)">
+      	<div class="neumorphic-switch-inner"></div>
+  		</div>
+      </div>
+      <div class="neumorphic-switch-container">
+    	<div class="switch-text">Digital Output 6</div>
+    	<div class="neumorphic-switch" id="DO6" onclick="toggleSwitch(this);setState(this)">
+      	<div class="neumorphic-switch-inner"></div>
+  		</div>
+      </div>      
+      <div class="neumorphic-switch-container">
+    	<div class="switch-text">Digital Output 7</div>
+    	<div class="neumorphic-switch" id="DO7" onclick="toggleSwitch(this);setState(this)">
+      	<div class="neumorphic-switch-inner"></div>
+  		</div>
+      </div>      
+      <div class="neumorphic-switch-container">
+    	<div class="switch-text">Digital Output 8</div>
+    	<div class="neumorphic-switch" id="DO8" onclick="toggleSwitch(this);setState(this)">
+      	<div class="neumorphic-switch-inner"></div>
+  		</div>
+      </div> 
+      </div>  
+  </div>
+  <script>
+    // Sets the appearance of an element to active or inactive
+    function setStatus(id, active) {
+      const element = document.getElementById(id);
+      if (Number(active)) {
+        element.classList.add('active');
+      } else {
+        element.classList.remove('active');
+      }
+    }
+  </script>  
+  <script>
+    function postAnalogValue(valueId) {
+      switch(valueId){
+          case "AO1":
+            AO = 2;
+            break;
+
+          case "AO2":
+            AO = 3;
+            break;  
+
+          case "AO3":
+            AO = 4;
+            break; 
+
+          case "AO4":
+            AO = 5;
+            break; 
+      }
+      let value = (document.getElementById(valueId)).textContent;
+      console.log(valueId, value);
+      fetch('http://192.168.50.212/analogout', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+          },
+          body: new URLSearchParams({
+              'value': value,
+              'port' : AO
+          }),
+          cache: 'no-store'
+      });
+    }     
+    document.addEventListener("DOMContentLoaded", function() {
+      function handleSliderInteraction(sliderId, thumbId, valueId, event) {
+        var slider = document.getElementById(sliderId);
+        var thumb = document.getElementById(thumbId);
+        var settingValue = document.getElementById(valueId);
+
+        var sliderRect = slider.getBoundingClientRect();
+        var newPosition = event.clientX - sliderRect.left;
+        var maxPosition = sliderRect.width;
+
+        if (newPosition < 0) {
+          newPosition = 0;
+        } else if (newPosition > maxPosition) {
+          newPosition = maxPosition;
+        }
+
+        thumb.style.left = newPosition + 'px';
+
+        var maxValue = 3.3; // Depends on application as to what we show ADC MAX is 3.3
+
+        // Calculate the setting value (1 to 100)
+        var percentage = (newPosition / maxPosition) * 100;
+        var value = Math.round(maxValue * percentage)/100;
+        settingValue.textContent = value;
+      }
+
+      function addSliderListeners(sliderId, thumbId, valueId) {
+        var thumb = document.getElementById(thumbId);
+
+        thumb.addEventListener('mousedown', function(event) {
+          document.addEventListener('mousemove', handleMouseMove);
+          document.addEventListener('mouseup', handleMouseUp);
+
+          function handleMouseMove(event) {
+            handleSliderInteraction(sliderId, thumbId, valueId, event);
+          }
+
+          function handleMouseUp() {          
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            postAnalogValue(valueId);  
+          }
+        });
+      }
+
+      // Add listeners for each slider
+      addSliderListeners('slider1', 'thumb1', 'AO1');
+      addSliderListeners('slider2', 'thumb2', 'AO2');
+      addSliderListeners('slider3', 'thumb3', 'AO3');
+      addSliderListeners('slider4', 'thumb4', 'AO4');
+    });
+  </script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Create the first gauge
+      var gauge1 = new RadialGauge({
+        renderTo: 'gauge1',
+        width: 200,
+        height: 200,
+        units: "Units",
+        title: "Gauge 1",
+        value: 0,
+        minValue: 0,
+        maxValue: 100
+      }).draw();
+
+      // Create the second gauge
+      var gauge2 = new RadialGauge({
+        renderTo: 'gauge2',
+        width: 200,
+        height: 200,
+        units: "Units",
+        title: "Gauge 2",
+        value: 0,
+        minValue: 0,
+        maxValue: 100
+      }).draw();
+
+      // Create the third gauge
+      var gauge3 = new RadialGauge({
+        renderTo: 'gauge3',
+        width: 200,
+        height: 200,
+        units: "Units",
+        title: "Gauge 3",
+        value: 0,
+        minValue: 0,
+        maxValue: 100
+      }).draw();
+
+      // Create the fourth gauge
+      var gauge4 = new RadialGauge({
+        renderTo: 'gauge4',
+        width: 200,
+        height: 200,
+        units: "Units",
+        title: "Gauge 4",
+        value: 0,
+        minValue: 0,
+        maxValue: 100
+      }).draw();
+      onBodyLoad();
+    });
+  </script>
+    <script>
+    function toggleSwitch(switchElement) {
+      switchElement.classList.toggle('active');
+    }
+  </script>
+  <script>
+    function isActive(element){
+      return element.classList.contains("active");
+    }
+    function getTemperature() {
+        fetch('http://192.168.50.212/temp')
+            .then(res => res.json())
+            .then(json => {
+                console.log(json);
+                var gauge = document.gauges.get('gauge1');
+                gauge.value = json.temperature;
+        }).catch(err => console.error(err));
+    };
+    function setTimeIntervalGauge() {
+        const getTemperature = () => {
+            fetch('http://192.168.50.212/temp')
+                .then(res => res.json())
+                .then(json => {
+                    console.log(json);
+                    var gauge = document.gauges.get('gauge1');
+                    gauge.value = json.temperature;
+            }).catch(err => console.error(err));                    
+        };
+        setInterval(getTemperature, 15000);
+    };
+/*    function getADC1() {
+        fetch('http://192.168.50.212/adc/1')
+            .then(res => res.json())
+            .then(json => {
+                console.log(json);
+                var gauge = document.gauges.get('gauge2');
+                gauge.value = json["1"]; 
+        }).catch(err => console.error(err));
+    };
+    function getADC3() {
+        fetch('http://192.168.50.212/adc/2')
+            .then(res => res.json())
+            .then(json => {
+                console.log(json);
+                var gauge = document.gauges.get('gauge3');
+                gauge.value = json["2"]; 
+        }).catch(err => console.error(err));
+    };
+    function getADC4() {
+        fetch('http://192.168.50.212/adc/3')
+            .then(res => res.json())
+            .then(json => {
+                console.log(json);
+                var gauge = document.gauges.get('gauge4');
+                gauge.value = json["3"]; 
+        }).catch(err => console.error(err));
+    }; */
+
+    function setTimeIntervalADCs() {
+      const getADC1 = () => {
+      fetch('http://192.168.50.212/adc/1')
+              .then(res => res.json())
+              .then(json => {
+                  console.log(json);
+                  var gauge = document.gauges.get('gauge2');
+                  gauge.value = json[1]; 
+          }).catch(err => console.error(err));
+      };
+      setInterval(getADC1, 10000);
+      const getADC2 = () => {
+      fetch('http://192.168.50.212/adc/2')
+              .then(res => res.json())
+              .then(json => {
+                  console.log(json);
+                  var gauge = document.gauges.get('gauge3');
+                  gauge.value = json[2]; 
+          }).catch(err => console.error(err));
+      };
+      setInterval(getADC2, 10000);
+      const getADC3 = () => {
+      fetch('http://192.168.50.212/adc/3')
+              .then(res => res.json())
+              .then(json => {
+                  console.log(json);
+                  var gauge = document.gauges.get('gauge4');
+                  gauge.value = json[3]; 
+          }).catch(err => console.error(err));
+      };
+      setInterval(getADC3, 10000);
+    };
+
+    function reflectLEDstate(){
+        var checkbox = document.getElementById('DO1');
+        fetch('http://192.168.50.212/led')
+            .then(res => res.json())
+            .then(json => {
+                console.log(json);
+                console.log(json.led);
+                setStatus('DO1', json.led);
+        }).catch(err => console.error(err));
+    };
+    function setState(element){
+      console.log(element);
+        var state = Number(isActive(element));
+        var DO;
+        switch(element.id){
+          case "DO1":
+            DO = "led";
+            gpio = null;
+            break;
+
+          case "DO2":
+            DO = "gpio";
+            gpio = 16;
+            break;  
+
+          case "DO3":
+            DO = "gpio";
+            gpio = 17;
+            break; 
+
+          case "DO4":
+            DO = "gpio";
+            gpio = 18;
+            break; 
+            
+          case "DO5":
+            DO = "gpio";
+            gpio = 19;
+            break;    
+          
+          case "DO6":
+            DO = "gpio";
+            gpio = 20;
+            break; 
+          
+          case "DO7":
+            DO = "gpio";
+            gpio = 21;
+            break; 
+            
+          case "DO8":
+            DO = "gpio";
+            gpio = 22;
+            break;         
+        }
+        fetch('http://192.168.50.212/' + DO, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+            },
+            body: new URLSearchParams({
+                'value': state,
+                'gpio' : gpio
+            }),
+            cache: 'no-store'
+        })
+    };
+    function reflectGPIOstate(){
+      fetch('http://192.168.50.212/gpioarray')
+        .then(res => res.json())
+        .then(json => {
+          console.log(json);
+          for(let i = 16; i < 23; i++){
+            switch(i){
+              case 16:
+                setStatus('DO2', json[i]);
+                break;
+              case 17:
+                setStatus('DO3', json[i]);
+                break;
+              case 18:
+                setStatus('DO4', json[i]);
+                break;
+              case 19:
+                setStatus('DO5', json[i]);
+                break;
+              case 20:
+                setStatus('DO6', json[i]);
+                break;
+              case 21:
+                setStatus('DO7', json[i]);
+                break;
+              case 22:
+                setStatus('DO8', json[i]);
+                break;
             }
-            #graph-container {
-                width: 100%;
-                height: 100%;
-                margin: 0;
-                padding: 0;
-            }
-            .features {
-                display: grid;
-                /* this is the same as grid-template-columns: 1fr 1fr 1fr 1fr; */
-                grid-template-columns: repeat(4, 1fr);
-                /* this is the same as grid-template-rows: 375px 375px; */
-                grid-template-rows: repeat(2, 450px);
-                gap: 10px;
-            }
-            h2{
-                text-align:center;
-            }
+          }
+        }).catch(err => console.error(err));
+    };
 
-            .c1 {
-                grid-column: auto / span 3;
-            }
+    function onBodyLoad(){
+        //drawGauge();
+        setTimeIntervalGauge();
+        //setTimeIntervalADCs();
+        //setTimeIntervalHistory();
+        getTemperature();
+        reflectLEDstate();
+        reflectGPIOstate();
+        //resize();
+        //drawChart();
+        //updateData(initialValues);
+    }
+  </script>
+  <script>
+    function setMsg(cls, text) {
+				console.log(cls + ':' + text);
+			}
+    var ws;
+    var retries;
+    window.onload = function() {
+      wsOpen();
+    }
+    function onMessage(evt) {
+      console.log(evt);
+      retries = 0;
+      var dv = new DataView(evt.data);
+      var val = dv.getUint16(0);
+      if (val == 0xBEEF)
+        console.log("LED switched on ");
+      else if (val == 0xDEAD)
+        console.log("LED switched off ");
+      else
+        console.log("Something else");
+    }
+    function wsOpen() {
+      if (ws === undefined || ws.readyState != 0) {
+        if (retries)
+          setMsg("error", "WebSocket timeout, retrying..");
+        else
+          setMsg("info", "Opening WebSocket..");
+        ws = new WebSocket("ws://" + location.host);
+        ws.binaryType = 'arraybuffer';
+        ws.onopen = function(evt) { retries = 0; setMsg("done", "WebSocket is open."); };
+        ws.onerror = function(evt) { setMsg("error", "WebSocket error!"); };
+        ws.onmessage = function(evt) { onMessage(evt); };
+        wsOpenStream();
+        retries = 0;
+      }
+    }
+    function wsOpenStream() {
+      var uri = "/stream"
+      var ws = new WebSocket("ws://" + location.host + uri);
+      ws.onmessage = function(evt) {
+        console.log(evt.data);
+        var stats = JSON.parse(evt.data);
+        console.log(stats);
+      };
+    }
+    function wsWrite(data) {
+      if (ws.readyState == 3 || retries++ > 5)
+        wsOpen();
+      else if (ws.readyState == 1)
+        ws.send(data);
+    }
+  </script>
 
-            @media screen and (min-width:560px) {}
-
-            @media screen and (min-width:737px) {
-                .c1-2-md {
-                    grid-column: auto / span 2;
-                }
-                .c1-md {
-                    grid-column: auto / span 1;
-                }
-            }
-
-            @media screen and (min-width: 1102px) {
-                .c1-3-lg {
-                    grid-column: auto / span 2;
-                }
-            }
-        </style>
-        <script src="https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
-
-        <script>
-
-            // globals
-            var jsonData;
-            var chartData = [];  
-            var series;
-            var xValues = [];
-            var yValues = [];
-            var historyChart;            
-
-            function resize() {
-                var canvas = document.getElementById("tempGauge");
-                // Resize the window, not the pen
-                // Our canvas must cover full height of screen
-                // regardless of the resolution
-                var height = window.innerHeight*.3;  // use 30% of window height to scale
-
-                // So we need to calculate the proper scaled width
-                // that should work well with every resolution
-                var ratio = canvas.width / canvas.height;
-                var width = height * ratio;
-
-                canvas.style.width = width + 'px';
-                canvas.style.height = height + 'px';
-            };
-            window.addEventListener('resize', resize, false);
-            function getTemperature() {
-                fetch('http://192.168.50.212/temp')
-                    .then(res => res.json())
-                    .then(json => {
-                        console.log(json);
-                        var gauge = document.gauges.get('tempGauge');
-                        gauge.value = json.temperature;
-                }).catch(err => console.error(err));
-            };
-            function setTimeIntervalGauge() {
-                const getTemperature = () => {
-                    fetch('http://192.168.50.212/temp')
-                        .then(res => res.json())
-                        .then(json => {
-                            console.log(json);
-                            var gauge = document.gauges.get('tempGauge');
-                            gauge.value = json.temperature;
-                    }).catch(err => console.error(err));                    
-                };
-                setInterval(getTemperature, 15000);
-            };
-            // add data
-
-            function setTimeIntervalHistory() {
-                const getTemperatureHistory = () => {
-                    fetch('http://192.168.50.212/readlog/2023-10-17')
-                        .then(res => res.json())
-                        .then(json => {
-                            console.log(json);
-                            jsonData = json;
-                            updateData(jsonData);
-                    }).catch(err => console.error(err));                    
-                };
-                setInterval(getTemperatureHistory, 15000);
-            };
-            function drawGauge(){
-                var gauge = new RadialGauge({
-                    renderTo: 'tempGauge',
-                    width: "200",
-                    height: "200",
-                    units: "F",
-                    title: "Temperature",
-                    minValue: 0,
-                    maxValue: 150,
-                    majorTicks: [
-                        0,10,20,30,40,50,60,70,80,90,100,110, 120, 130, 140, 150],
-                    minorTicks: 5,
-                    strokeTicks: true,
-                    highlights: [
-                        {
-                            "from": 0,
-                            "to": 100,
-                            "color": "rgba(0,0, 255, .3)"
-                        },
-                        {
-                            "from": 100,
-                            "to": 150,
-                            "color": "rgba(255, 0, 0, .3)"
-                        }
-                    ],
-                    ticksAngle: 225,
-                    startAngle: 67.5,
-                    colorMajorTicks: "#ddd",
-                    colorMinorTicks: "#ddd",
-                    colorTitle: "#eee",
-                    colorUnits: "#ccc",
-                    colorNumbers: "#eee",
-                    colorPlate: "#222",
-                    borderShadowWidth: 0,
-                    borders: true,
-                    needleType: "arrow",
-                    needleWidth: 2,
-                    needleCircleSize: 7,
-                    needleCircleOuter: true,
-                    needleCircleInner: false,
-                    animationDuration: 1500,
-                    animationRule: "linear",
-                    colorBorderOuter: "#333",
-                    colorBorderOuterEnd: "#111",
-                    colorBorderMiddle: "#222",
-                    colorBorderMiddleEnd: "#111",
-                    colorBorderInner: "#111",
-                    colorBorderInnerEnd: "#333",
-                    colorNeedleShadowDown: "#333",
-                    colorNeedleCircleOuter: "#333",
-                    colorNeedleCircleOuterEnd: "#111",
-                    colorNeedleCircleInner: "#111",
-                    colorNeedleCircleInnerEnd: "#222",
-                    valueBoxBorderRadius: 0,
-                    colorValueBoxRect: "#222",
-                    colorValueBoxRectEnd: "#333"
-                }).draw();
-            };
-            function setLEDstate(){
-                var checkbox = document.getElementById('LED');
-                fetch('http://192.168.50.212/led')
-                    .then(res => res.json())
-                    .then(json => {
-                        console.log(json);
-                        console.log(json.led);
-                        checkbox.checked = json.led;
-                }).catch(err => console.error(err));
-            };
-            function checkLEDState(){
-                var checkbox_state = +(document.getElementById('LED').checked);
-                fetch('http://192.168.50.212/led', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                    },
-                    body: new URLSearchParams({
-                        'value': checkbox_state
-                    }),
-                    cache: 'no-store'
-                })
-            };
-            function setGPIOstate(){
-                var checkbox = document.getElementById('GPIO');
-                fetch('http://192.168.50.212/gpio/18')
-                    .then(res => res.json())
-                    .then(json => {
-                        console.log(json);
-                        console.log(json["18"]);
-                        checkbox.checked = json["18"];
-                }).catch(err => console.error(err));
-            };
-            function checkGPIOState(){
-                var checkbox_state = +(document.getElementById('GPIO').checked);
-                fetch('http://192.168.50.212/gpio', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                    },
-                    body: new URLSearchParams({
-                        'gpio': 18,
-                        'value': checkbox_state
-                    }),
-                    cache: 'no-store'
-                })
-                .catch(err => console.error(err));
-            };
-            // initial values
-            const initialValues = [{"date": "2023-10-10T19:11:56Z", "temperature": 90.3, "temperature units": "F"}, {"date": "2023-10-10T19:12:57Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:13:56Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:16:06Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:17:05Z", "temperature": 92.7, "temperature units": "F"}, {"date": "2023-10-10T19:18:05Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:19:05Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:21:12Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:22:12Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:23:12Z", "temperature": 92.2, "temperature units": "F"}];
-            //generateData("x * 2 + 7", 0, 10, 0.5);
-            //generateData(jsonLocal);
-            function updateData(jsonLocal){
-                xValues = [];
-                yValues = [];
-                // need to convert json into array for anychart
-                for(i = 0; i < jsonLocal.length; i++) {
-                    console.log(jsonLocal[i]);
-                    var date = new Date(jsonLocal[i].date);
-                    xValues.push(date.toLocaleString());
-                    yValues.push(jsonLocal[i].temperature);
-                }; 
-                console.log(xValues);
-                console.log(yValues);  
-                historyChart.data.datasets[0].data = yValues;
-                historyChart.data.labels = xValues;
-                historyChart.update();             
-            };
-            // function addData(chart, label, newData) {
-            //     chart.data.labels.push(label);
-            //     chart.data.datasets.forEach((dataset) => {
-            //         dataset.data.push(newData);
-            //     });
-            //     chart.update();
-            // }
-
-            // function removeData(chart) {
-            //     chart.data.labels.pop();
-            //     chart.data.datasets.forEach((dataset) => {
-            //         dataset.data.pop();
-            //     });
-            //     chart.update();
-            // }
-            function drawChart() {    
-                historyChart = new Chart("myChart", {
-                    type: "line",
-                    data: {
-                        labels: xValues,
-                        datasets: [{
-                        fill: false,
-                        pointRadius: 1,
-                        borderColor: "rgba(255,0,0,0.5)",
-                        data: yValues
-                        }]
-                    },    
-                    options: {
-                        legend: {display: false},
-                        title: {
-                        display: true,
-                        text: "Core Temperature",
-                        fontSize: 16
-                        }
-                    }
-                });            
-            }
-            // function drawChart(json) {    
-
-            //     // need to convert json into array for anychart
-            //     var data = [];
-            //     for(i = 0; i < json.length; i++) {
-            //     console.log(json[i]);
-            //     data[i] =  [json[i].date, json[i].temperature];
-            //     console.log(data[i]);
-            //     };
-
-            //     console.log(data);
-                            
-            //     // create a data set
-            //     var dataSet = anychart.data.set(data);
-
-            //     // map the data for all series
-            //     var firstSeriesData = dataSet.mapAs({x: 0, value: 1});
-
-            //     // create a line chart
-            //     var chart = anychart.line();
-
-            //     // create the series and name them
-            //     var firstSeries = chart.line(firstSeriesData);
-            //     firstSeries.name("Ian's Pico");
-
-            //     // add a legend
-            //     chart.legend().enabled(true);
-
-            //     // add a title
-            //     chart.title("Core Temperature");
-
-            //     // specify where to display the chart
-            //     chart.container("graph-container");
-
-            //     // draw the resulting chart
-            //     chart.draw();
-
-            // }
-            function onBodyLoad(){
-                drawGauge();
-                setTimeIntervalGauge();
-                setTimeIntervalHistory();
-                getTemperature();
-                setLEDstate();
-                setGPIOstate();
-                resize();
-                drawChart();
-                updateData(initialValues);
-            }
-    </script>
-    </head>
-    <body onLoad="onBodyLoad()"> 
-
-        <h2>Raspberry Pi Pico</h1>
-
-        <div class="features ">
-            <div class="f-card c1 c1-md c1-lg">
-                <h3>Core Pico Temperature</h2>
-                <canvas id="tempGauge"></canvas>
-            </div>
-            <div class="f-card c1 c1-md c1-3-lg">
-                <h3>Temperature History</h2>
-                <div id="graph-container">
-                    <canvas id="myChart" style="width:100%;max-width:600px"></canvas>
-                </div>
-            </div>
-            <div class="f-card c1 c1-md c-1-lg">
-                <h3>Controls</h2>
-                <label onClick>
-                    <input type="checkbox" id="LED" name="LED" onclick="checkLEDState()" />
-                    LED
-                </label>
-                <label onClick>
-                    <input type="checkbox" id="GPIO" name="GPIO" onclick="checkGPIOState()" />
-                    GPIO 18
-                </label>
-            </div>  
-        </div>
-
-      
-
-    </body>
+</body>
 </html>

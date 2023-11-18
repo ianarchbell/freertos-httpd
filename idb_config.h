@@ -17,6 +17,8 @@
 #define IDB_WIFI_SCAN 1
 #define IDB_WIFI_SCAN_COUNT 2
 #define IDB_WORLD_TIME_API 0 // requires a special branch of pico-sdk
+#define IDB_DATA_LOGGING 0
+#define IDB_INI_TEST 0
 
 static char buff[64]; // general purpose buffer 
 

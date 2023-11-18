@@ -7,9 +7,12 @@ include(pico_sdk_import.cmake)
 include(FreeRTOS_Kernel_import.cmake)
 
 set(PICO_LWIP_APP_INCLUDE_PATH "${PICO_SDK_PATH}/lib/lwip/src/include/lwip/apps")
+set(PICO_LWIP_APP_PATH "${PICO_SDK_PATH}/lib/lwip/src/apps")
 set(PICO_LWIP_CONTRIB_APP_INCLUDE_PATH "${PICO_SDK_PATH}/lib/lwip/contrib/")
 
 set(FATPATH "${CMAKE_CURRENT_LIST_DIR}/FreeRTOS-FAT-CLI-for-RPi-Pico")
+
+set(MININI_PATH "${CMAKE_CURRENT_LIST_DIR}/minini")
 
 message("LWIP app path: " ${PICO_LWIP_APP_INCLUDE_PATH})
 
@@ -34,6 +37,7 @@ add_compile_options( # -Wimplicit #check we have headers
         -Wno-format          # int != int32_t as far as the compiler is concerned because gcc has int32_t as long int
         -Wno-unused-function # we have some for the docs that aren't called
         -Wno-maybe-uninitialized
+        -O0
         )        
 
 if (NOT DEFINED ENV{WIFI_SSID})
@@ -45,12 +49,14 @@ endif()
 
 add_executable(idb
         idb_main.c fs_ext.c hw_config.c idb_router.c idb_ntp_client.c idb_data_logger.c
-                idb_hardware.c idb_post.c 
+                idb_hardware.c idb_post.c idb_ini.c
                 idb_runtime_stats.c 
                 idb_ping.c
                 #idb_http_client.c 
                 #${PICO_LWIP_CONTRIB_PATH}/apps/ping/ping.c
+                ${PICO_LWIP_APP_PATH}/http/strcasestr.c
                 ${CMAKE_CURRENT_LIST_DIR}/tiny-json/tiny-json.c
+                ${MININI_PATH}/dev/minini.c
         )
         
 target_compile_definitions(idb PRIVATE
@@ -72,15 +78,18 @@ target_include_directories(idb PRIVATE
         ${FREERTOS_PATH}/portable/GCC/ARM_CM0
         ${CMAKE_CURRENT_LIST_DIR} 
         ${PICO_LWIP_CONTRIB_PATH}/apps/ping
+        ${MININI_PATH}/dev
         )       
 target_link_libraries(idb        
         pico_stdlib
         pico_cyw43_arch_lwip_sys_freertos
         pico_lwip_http
         hardware_adc
+        hardware_pwm
         FreeRTOS+FAT+CLI
         FreeRTOS-Kernel-Heap4 # FreeRTOS kernel and dynamic heap   
         pico_lwip_iperf
+        pico_mbedtls
         #pico_http_client
         ) 
           

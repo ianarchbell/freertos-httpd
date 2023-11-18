@@ -25,27 +25,25 @@ void runTimeStats(   ){
    pxTaskStatusArray = (TaskStatus_t *)pvPortMalloc( uxArraySize * sizeof( TaskStatus_t ) );
 
    if( pxTaskStatusArray != NULL ){
-      // Generate raw status information about each task.
+		// Generate raw status information about each task.
 
-      uxArraySize = uxTaskGetSystemState( pxTaskStatusArray,
-                                 uxArraySize,
-                                 &ulTotalRunTime );
+		uxArraySize = uxTaskGetSystemState( pxTaskStatusArray,
+									uxArraySize,
+									&ulTotalRunTime );
 
-	 // Print stats
-	 for( x = 0; x < uxArraySize; x++ )
-	 {
-		 printf("Task: %d \t cPri:%d \t bPri:%d \t hw:%d \t%s\n",
-				pxTaskStatusArray[ x ].xTaskNumber ,
-				pxTaskStatusArray[ x ].uxCurrentPriority ,
-				pxTaskStatusArray[ x ].uxBasePriority ,
-				pxTaskStatusArray[ x ].usStackHighWaterMark ,
-				pxTaskStatusArray[ x ].pcTaskName
-				);
-	 }
-
-
-      // Free array
-      vPortFree( pxTaskStatusArray );
+		// Print stats
+		for( x = 0; x < uxArraySize; x++ )
+		{
+			TRACE_PRINTF("Task: %d \t cPri:%d \t bPri:%d \t hw:%d \t%s\n",
+					pxTaskStatusArray[ x ].xTaskNumber ,
+					pxTaskStatusArray[ x ].uxCurrentPriority ,
+					pxTaskStatusArray[ x ].uxBasePriority ,
+					pxTaskStatusArray[ x ].usStackHighWaterMark ,
+					pxTaskStatusArray[ x ].pcTaskName
+					);
+		}
+		// Free array
+		vPortFree( pxTaskStatusArray );
    } else {
 	   panic("Failed to allocate space for stats\n");
    }
@@ -53,7 +51,7 @@ void runTimeStats(   ){
    //Get heap allocation information
    HeapStats_t heapStats;
    vPortGetHeapStats(&heapStats);
-   printf("HEAP avl: %d, blocks %d, alloc: %d, free: %d\n",
+   TRACE_PRINTF("HEAP avl: %d, blocks %d, alloc: %d, free: %d\n",
 		   heapStats.xAvailableHeapSpaceInBytes,
 		   heapStats.xNumberOfFreeBlocks,
 		   heapStats.xNumberOfSuccessfulAllocations,

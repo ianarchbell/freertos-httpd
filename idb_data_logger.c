@@ -172,7 +172,7 @@ void task_logger(void* unused_arg) {
 }
 
 bool logger_init() {
-    static StackType_t xStack[2048+512];
+    static StackType_t xStack[3000];
     static StaticTask_t xTaskBuffer;
     if (!th) {
         th = xTaskCreateStatic(

@@ -46,12 +46,11 @@ float read_onboard_temperature(const char unit) {
  * Prints the HTTP headers for all the json responses
  * 
 */
-int printJSONHeaders(char* buffer, int count){
+int printJSONHeaders(char* buffer, int count, int len){
 
-    strcpy(buffer, "HTTP/1.1 200 OK\n");
-    strcat(buffer, "Content-Type: application/json\n");
-    sprintf(buffer+strlen(buffer), "Content-Length: %d\n\n", count);
-    //TRACE_PRINTF(buffer);
+    int hdrLength = sprintf(buffer, "HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: %d\n\n", len);
+    if (hdrLength > count)
+        panic("Buffer for json headers too small\n");
     return strlen(buffer);
 }
 
@@ -72,7 +71,7 @@ void returnTemperature(NameFunction* ptr, char* buffer, int count){
         if (len > count){
             panic("buffer too small for temperature\n");
         }
-        printJSONHeaders(buffer, len);
+        printJSONHeaders(buffer, count, len);
         strcat(buffer, buf);
     }
 }
@@ -110,7 +109,7 @@ void returnLED(NameFunction* ptr, char* buffer, int count){
         char buff[64];
         // Output JSON very simply
         int len = sprintf(buff, "{\"led\": %d}", led);
-        printJSONHeaders(buffer, len);
+        printJSONHeaders(buffer, count, len);
         if(strlen(buffer) + len < count){
             strcat(buffer, buff);
         }
@@ -145,6 +144,16 @@ void setLED(NameFunction* ptr, char* buffer, int count, const char* uri){
 
 /**
  * 
+ * Sets the value of an analog output and returns json success
+ * 
+*/
+void setAnalogOut(NameFunction* ptr, char* buffer, int count, int analogPort, double value){
+    TRACE_PRINTF("Port value: %d, float value: %.5f\n", analogPort, value);
+    analogOutput(analogPort, value);
+}
+
+/**
+ * 
  * Sets the value of a GPIO and returns json success
  * 
 */
@@ -170,18 +179,19 @@ void setGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin, int gpio_
  * Returns the number of the GPIO to the caller
  * 
 */
-int getGPIO(const char* uri){
+char* getFirstToken(char* token, const char* uri){
 
     char buff[64]; 
     strncpy(buff, uri, sizeof(buff));
     buff[sizeof(buff)-1] = '\0';  // Ensure null if truncated
     strtok(buff,"/"); // find the first /
-    const char* subString = strtok(NULL,"/");       // find the second /
-    if (subString == NULL)
-        return -1;
+    char* localToken = strtok(NULL,"/");       // find the second /
+    if (localToken == NULL)
+        return NULL;
     else{
-        //TRACE_PRINTF("Got GPIO number %s\n", subString2);
-        return atoi(subString);
+        //TRACE_PRINTF("Got first token: %s\n", subString2);
+        strcpy(token, localToken);
+        return token;
     }
 }
 
@@ -190,7 +200,7 @@ int getGPIO(const char* uri){
  * Returns the value of the GPIO to the caller
  * 
 */
-int getGPIOValue(const char* uri){
+char* getSecondToken(char* token, const char* uri){
 
     char buff[64]; 
     strncpy(buff, uri, sizeof(buff));
@@ -198,13 +208,59 @@ int getGPIOValue(const char* uri){
     strtok(buff,"/"); // find the first /
     const char* subString = strtok(NULL,"/");       // find the second /
     if (subString == NULL)
-        return -1;
-    const char* subString2 = strtok(NULL,"/");       // find the second /
-    if (subString2 == NULL)
-        return -1;
+        return NULL;
+    char* localToken = strtok(NULL,"/");       // find the second /
+    if (localToken == NULL)
+        return NULL;
     else{    
-        //TRACE_PRINTF("Got GPIO value %s\n", subString3);
-        return atoi(subString2);
+        TRACE_PRINTF("Got second token %s\n", token);
+        strcpy(token, localToken);
+        return token;
+    }
+}
+
+/**
+ * 
+ * Empty 200 OK
+ * 
+*/
+void printOK(char* buffer, int count){
+    if (buffer){
+        int hdrLength = sprintf(buffer, "HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: %d\n\n", 0);
+        if (hdrLength > count)
+            panic("Buffer for json headers too small\n");
+    }
+}
+
+/**
+ * 
+ * Returns the value of the selected ADC in json
+ * 
+*/
+void adc(NameFunction* ptr, char* buffer, int count, const char* uri){
+
+    if (buffer){
+        char buff[64];
+        char token[64];
+        if(getFirstToken(token, uri)){
+            int adc = atoi(token);        
+            int16_t adc_value = readADC(adc);
+            //float adc_value = readADCraw(adc);
+
+            // Output JSON very simply
+            TRACE_PRINTF("Returning ADC status channel: %d, value: %d\n", adc, adc_value);
+            //TRACE_PRINTF("Returning ADC status channel: %d, value: %0.3f\n", adc, adc_value);
+            int len = snprintf(buff, sizeof buff, "{\"%d\" : %d}", adc, adc_value);
+            //int len = snprintf(buff, sizeof buff, "{\"%d\" : %03f}", adc, adc_value);
+            printJSONHeaders(buffer, count, len);
+
+            if(strlen(buffer) + len < count){
+                strcat(buffer, buff);
+            }
+            else{
+                panic("Buffer too small for adc\n");
+            }
+        }
     }
 }
 
@@ -222,12 +278,29 @@ void returnGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin){
         // Output JSON very simply
         //TRACE_PRINTF("Returning GPIO status %d", gpio_pin);
         int len = snprintf(buff, sizeof buff, "{\"%d\" : %d}", gpio_pin, gpio_value);
-        printJSONHeaders(buffer, len);
+        printJSONHeaders(buffer, count, len);
         if(strlen(buffer) + len < count){
             strcat(buffer, buff);
         }
         else{
-            panic("buffer too small for returnLED\n");
+            panic("Buffer too small for returnLED\n");
+        }
+    }
+}
+
+/**
+ * 
+ * Handles analog out 
+ * 
+*/
+void analogOut(NameFunction* ptr, char* buffer, int count, const char* uri){
+    char token[64];
+    if(getFirstToken(token, uri)){
+        int analogPort = atoi(token);
+        if(getSecondToken(token, uri)){
+            double value = atof(token);
+            TRACE_PRINTF("Setting analog value port: %d, value: %03f, token: %s\n", analogPort, value, token);
+            setAnalogOut(ptr, buffer, count, analogPort, value);
         }
     }
 }
@@ -238,15 +311,17 @@ void returnGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin){
  * 
 */
 void gpio(NameFunction* ptr, char* buffer, int count, const char* uri){
-    int GPIOpin = getGPIO(uri);
-    int value = getGPIOValue(uri);
-    if(value != -1){
-        //TRACE_PRINTF("Setting GPIO value %d, %d\n", GPIOpin, value);
-        setGPIO(ptr, buffer, count, GPIOpin, value);
-    }
-    else{
-        //TRACE_PRINTF("Returning GPIO value %d\n", GPIOpin);
-        returnGPIO(ptr, buffer, count, GPIOpin);
+    char token[64];
+
+    if(getFirstToken(token, uri)){
+        int gpioPin = atoi(token);
+        if(getSecondToken(token, uri)){
+            int value = atoi(token);
+            setGPIO(ptr, buffer, count, gpioPin, value);
+        }
+        else{
+            returnGPIO(ptr, buffer, count, gpioPin);
+        }
     }
 }
 
@@ -258,18 +333,18 @@ void gpio(NameFunction* ptr, char* buffer, int count, const char* uri){
 void returnGPIOs(NameFunction* ptr, char* buffer, int count){
     if (buffer){   
         char buf[512]; 
-        strcpy(buf, "[");
+        strcpy(buf, "{");
         int offset = 1;
         int gpio_values[27]; 
         for(int i = 0; i < 27; i ++){       
             gpio_values[i] = (int)gpio_get(i);
-            int len = snprintf(buf + offset, sizeof buf, "{\"%d\" : %d}", i, gpio_values[i]);
+            int len = snprintf(buf + offset, sizeof buf, "\"%d\" : %d, ", i, gpio_values[i]);
             offset += len;
         }
-        strcat(buf, "]");
-        offset += 1;
+        memset(buf+offset-2, '}', 1);
+        memset(buf+offset-1, '\0', 1);
         
-        printJSONHeaders(buffer, offset);
+        printJSONHeaders(buffer, count, offset-1);
 
         if(strlen(buffer) + offset < count){
             strcat(buffer, buf);
@@ -370,8 +445,7 @@ int extractGPIOValues(int values[27], const char* uri){
 
 /**
  * 
- * Handles gpio array /gpioarray/0,1,1,0... from 0-26
- * Leave out the values you want unchanged
+ * Handles gpios as json array and sets values as appropriately
  * 
 */
 int gpioJSONArray(NameFunction* ptr, char* buffer, int count, const char* uri){
@@ -445,7 +519,6 @@ void gpioArray(NameFunction* ptr, char* buffer, int count, const char* uri){
             TRACE_PRINTF("Ignoring GPIO %d\n", i);    
     }    
 }
-
 
 /**
  * 
@@ -594,7 +667,7 @@ void readLogWithDate(NameFunction* ptr, char* buffer, int count, const char* uri
             readLog(logDate, buf, JSONBUFFSIZE-MINBUFSIZE); // should be enough for the header
             //TRACE_PRINTF("Response from readLog: %s\n", buf);
             int len = strlen(buf);
-            int hdrLen = printJSONHeaders(buffer, len);
+            int hdrLen = printJSONHeaders(buffer, count, len);
             strcat(buffer+hdrLen, buf);
             vPortFree(buf);
         }
@@ -617,7 +690,7 @@ void success(NameFunction* ptr, char* buffer, int count, char* uri){
     TRACE_PRINTF("Success\n");
     char buff[64];
     int len = sprintf(buff, "%s", "{\"success\" : true}");
-    printJSONHeaders(buffer, len); // print out headers with no body
+    printJSONHeaders(buffer, count, len); // print out headers with no body
     if(strlen(buffer) + len < count){
         strcat(buffer, buff);
     }
@@ -635,7 +708,7 @@ void failure(NameFunction* ptr, char* buffer, int count, char* uri){
     TRACE_PRINTF("Failure\n");
     char buff[64];
     int len = sprintf(buff, "%s", "{\"success\" : false}");
-    printJSONHeaders(buffer, len); // print out headers with no body
+    printJSONHeaders(buffer, count, len); // print out headers with no body
     if(strlen(buffer) + len < count){
         strcat(buffer, buff);
     }
@@ -657,7 +730,9 @@ NameFunction routes[] =
     { "/temperature", (void*) *returnTemperature, HTTP_GET, NULL },
     { "/led", (void*) *returnLED, HTTP_GET, NULL }, 
     { "/led/:value", (void*) *setLED, HTTP_POST, NULL }, 
+    { "/adc/:adc", (void*) *adc, HTTP_GET, NULL },  
     { "/gpio/:gpio", (void*) *gpio, HTTP_GET, NULL },  
+    { "/analogout/:port/:value", (void*) *analogOut, HTTP_POST, NULL },
     { "/gpio/:gpio/:value", (void*) *gpio, HTTP_POST, NULL },
     { "/gpioarray", (void*) *returnGPIOs, HTTP_GET, NULL },  
     { "/gpiofixedarray/:values", (void*) *gpioArray, HTTP_POST, NULL }, 
@@ -710,9 +785,9 @@ NameFunction* parsePartialMatch(const char* name, int routeType){
         strncpy(buff, ptr->routeName, sizeof(buff)); // copy for strtok
         buff[sizeof(buff)-1] = '\0';  // Ensure null if truncated
         const char* tok = strtok(buff, "/"); // start of route
-        TRACE_PRINTF("Tok: %s, name: %s\n", tok,nameTok);
+        //TRACE_PRINTF("Tok: %s, name: %s\n", tok,nameTok);
         if(!strcmp(tok, nameTok)) { // first token must be an exact match
-            TRACE_PRINTF("Token match: %s, routeName: %s\n", tok, nameTok);
+            //TRACE_PRINTF("Token match: %s, routeName: %s\n", tok, nameTok);
             return ptr;
         }
     }
@@ -731,10 +806,10 @@ NameFunction* isRoute(const char* name, int routeType){
     if (!ptr){ // always return an exact match if found otherwise look for partial
         ptr = parsePartialMatch(name, routeType);
     }
-    if (ptr)
-        TRACE_PRINTF("In route table\n");
-    else
-        TRACE_PRINTF("Not in route table\n");    
+    // if (ptr)
+    //     TRACE_PRINTF("In route table\n");
+    // else
+    //     TRACE_PRINTF("Not in route table\n");    
     return ptr;  
 }
 

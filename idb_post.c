@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "idb_router.h"
+#include "idb_config.h"
 
 #if !LWIP_HTTPD_SUPPORT_POST
 #error This needs LWIP_HTTPD_SUPPORT_POST
@@ -47,7 +48,7 @@ httpd_post_begin(void *connection, const char *uri, const char *http_request,
   LWIP_UNUSED_ARG(content_len);
   LWIP_UNUSED_ARG(post_auto_wnd);
 
-  printf("POST received with uri %s\n", uri);
+  TRACE_PRINTF("POST received with uri %s\n", uri);
   current_nameFunction = isRoute(uri, HTTP_POST);
   if(current_nameFunction){
     POST_uri = pvPortMalloc(URI_BUFSIZE); // allocate a URI buffer (freed on finish)
@@ -109,7 +110,7 @@ int url_decode(char* out, const char* in)
     return 0;
 }
 
-void
+int
 getTokenValue(char* decoded_value, struct pbuf *p, const char* token)
 {
   char tokenBuf[MAX_TOKEN_SIZE];
@@ -136,9 +137,11 @@ getTokenValue(char* decoded_value, struct pbuf *p, const char* token)
       char *token_value = (char *)pbuf_get_contiguous(p, buf_token_value, len_token_value, len_token_value, token_value_index);
       token_value[len_token_value] = 0;
       url_decode(decoded_value, token_value);
-      printf("Decoded: %s, original: %s\n", decoded_value, token_value);
+      TRACE_PRINTF("Decoded POST token: %s, original: %s\n", decoded_value, token_value);
+      return 1;
     }
   }
+  return 0;
 }
 
 err_t
@@ -149,9 +152,8 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
   char* token_ptr;
   char* token_ptr1; 
 
-  printf("Handling POST receieve\n");
+  //TRACE_PRINTF("Handling POST receieve\n");
   if (current_connection == connection && POST_uri != NULL) {
-     printf("In current connection\n");
 
     // construct router route from parms
     strncpy(namedRoute, current_nameFunction->routeName, URI_BUFSIZE);
@@ -172,24 +174,27 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
        // take 1 off the length for the '/' - we add one for every variable found
       token_ptr = prefix_ptr;
     }
-    while(token_ptr){
-      
+    while(token_ptr){      
       token_ptr1 =  strtok(NULL, "/");
-      //printf("token_ptr1: %s\n", token_ptr1); 
+      //TRACE_PRINTF("token_ptr1: %s\n", token_ptr1); 
       if(token_ptr1)
         token_ptr = token_ptr1;
-      //printf("token_ptr: %s\n", token_ptr);  
+      //TRACE_PRINTF("token_ptr: %s\n", token_ptr);  
       char* token_value = pvPortMalloc(URI_BUFSIZE);
-      getTokenValue(token_value, p, token_ptr);
-      //åprintf("token_value: %s\n", token_value);  
-      strcat(POST_uri, "/");
-      strcat(POST_uri, token_value);
+      if(getTokenValue(token_value, p, token_ptr)){
+        //TRACE_PRINTF("token_value: %s\n", token_value);  
+        strcat(POST_uri, "/");
+        if(strlen(token_value) + strlen(POST_uri) > sizeof POST_uri)
+          strncat(POST_uri, token_value, sizeof POST_uri - strlen(POST_uri));
+        else
+          panic("Token too large for the buffer in POST\n");
+        token_ptr = strtok(NULL, ":");   
+      }
       vPortFree(token_value);
-      token_ptr = strtok(NULL, ":");  
-    }
+     }
   }
   else{
-    printf("Not in current connection or no uri\n");
+    TRACE_PRINTF("POST: not in current connection or no uri\n");
   }
   if(p)
     pbuf_free(p);
@@ -210,7 +215,7 @@ httpd_post_finished(void *connection, char *response_uri, u16_t response_uri_len
  snprintf(response_uri, response_uri_len, "/failure");
  if (current_connection == connection) {
    if (POST_uri) {
-      printf("POSTing route uri: %s\n", POST_uri);
+      TRACE_PRINTF("POSTing route uri: %s\n", POST_uri);
       NameFunction* routeFunction = isRoute(POST_uri, HTTP_POST);
       if(routeFunction){
         char buffer[128];

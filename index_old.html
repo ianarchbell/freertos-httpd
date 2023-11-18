@@ -1,0 +1,319 @@
+
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
+        <link rel="stylesheet" href="idb.css" /> 
+        <style>
+
+        </style>
+        <script src="https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+
+        <script>
+
+            // globals
+            var jsonData;
+            var chartData = [];  
+            var series;
+            var xValues = [];
+            var yValues = [];
+            var historyChart;            
+
+            function resize() {
+                var canvas = document.getElementById("tempGauge");
+                // Resize the window, not the pen
+                // Our canvas must cover full height of screen
+                // regardless of the resolution
+                var height = window.innerHeight*.3;  // use 30% of window height to scale
+
+                // So we need to calculate the proper scaled width
+                // that should work well with every resolution
+                var ratio = canvas.width / canvas.height;
+                var width = height * ratio;
+
+                canvas.style.width = width + 'px';
+                canvas.style.height = height + 'px';
+            };
+            window.addEventListener('resize', resize, false);
+            function getTemperature() {
+                fetch('http://192.168.50.212/temp')
+                    .then(res => res.json())
+                    .then(json => {
+                        console.log(json);
+                        var gauge = document.gauges.get('tempGauge');
+                        gauge.value = json.temperature;
+                }).catch(err => console.error(err));
+            };
+            function setTimeIntervalGauge() {
+                const getTemperature = () => {
+                    fetch('http://192.168.50.212/temp')
+                        .then(res => res.json())
+                        .then(json => {
+                            console.log(json);
+                            var gauge = document.gauges.get('tempGauge');
+                            gauge.value = json.temperature;
+                    }).catch(err => console.error(err));                    
+                };
+                setInterval(getTemperature, 15000);
+            };
+            // add data
+
+            function setTimeIntervalHistory() {
+                const getTemperatureHistory = () => {
+                    fetch('http://192.168.50.212/readlog/2023-10-17')
+                        .then(res => res.json())
+                        .then(json => {
+                            console.log(json);
+                            jsonData = json;
+                            updateData(jsonData);
+                    }).catch(err => console.error(err));                    
+                };
+                setInterval(getTemperatureHistory, 15000);
+            };
+            function drawGauge(){
+                var gauge = new RadialGauge({
+                    renderTo: 'tempGauge',
+                    width: "200",
+                    height: "200",
+                    units: "F",
+                    title: "Temperature",
+                    minValue: 0,
+                    maxValue: 150,
+                    majorTicks: [
+                        0,10,20,30,40,50,60,70,80,90,100,110, 120, 130, 140, 150],
+                    minorTicks: 5,
+                    strokeTicks: true,
+                    highlights: [
+                        {
+                            "from": 0,
+                            "to": 100,
+                            "color": "rgba(0,0, 255, .3)"
+                        },
+                        {
+                            "from": 100,
+                            "to": 150,
+                            "color": "rgba(255, 0, 0, .3)"
+                        }
+                    ],
+                    ticksAngle: 225,
+                    startAngle: 67.5,
+                    colorMajorTicks: "#ddd",
+                    colorMinorTicks: "#ddd",
+                    colorTitle: "#eee",
+                    colorUnits: "#ccc",
+                    colorNumbers: "#eee",
+                    colorPlate: "#222",
+                    borderShadowWidth: 0,
+                    borders: true,
+                    needleType: "arrow",
+                    needleWidth: 2,
+                    needleCircleSize: 7,
+                    needleCircleOuter: true,
+                    needleCircleInner: false,
+                    animationDuration: 1500,
+                    animationRule: "linear",
+                    colorBorderOuter: "#333",
+                    colorBorderOuterEnd: "#111",
+                    colorBorderMiddle: "#222",
+                    colorBorderMiddleEnd: "#111",
+                    colorBorderInner: "#111",
+                    colorBorderInnerEnd: "#333",
+                    colorNeedleShadowDown: "#333",
+                    colorNeedleCircleOuter: "#333",
+                    colorNeedleCircleOuterEnd: "#111",
+                    colorNeedleCircleInner: "#111",
+                    colorNeedleCircleInnerEnd: "#222",
+                    valueBoxBorderRadius: 0,
+                    colorValueBoxRect: "#222",
+                    colorValueBoxRectEnd: "#333"
+                }).draw();
+            };
+            function setLEDstate(){
+                var checkbox = document.getElementById('LED');
+                fetch('http://192.168.50.212/led')
+                    .then(res => res.json())
+                    .then(json => {
+                        console.log(json);
+                        console.log(json.led);
+                        checkbox.checked = json.led;
+                }).catch(err => console.error(err));
+            };
+            function checkLEDState(){
+                var checkbox_state = +(document.getElementById('LED').checked);
+                fetch('http://192.168.50.212/led', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                    },
+                    body: new URLSearchParams({
+                        'value': checkbox_state
+                    }),
+                    cache: 'no-store'
+                })
+            };
+            function setGPIOstate(){
+                var checkbox = document.getElementById('GPIO');
+                fetch('http://192.168.50.212/gpio/18')
+                    .then(res => res.json())
+                    .then(json => {
+                        console.log(json);
+                        console.log(json["18"]);
+                        checkbox.checked = json["18"];
+                }).catch(err => console.error(err));
+            };
+            function checkGPIOState(){
+                var checkbox_state = +(document.getElementById('GPIO').checked);
+                fetch('http://192.168.50.212/gpio', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                    },
+                    body: new URLSearchParams({
+                        'gpio': 18,
+                        'value': checkbox_state
+                    }),
+                    cache: 'no-store'
+                })
+                .catch(err => console.error(err));
+            };
+            // initial values
+            const initialValues = [{"date": "2023-10-10T19:11:56Z", "temperature": 90.3, "temperature units": "F"}, {"date": "2023-10-10T19:12:57Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:13:56Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:16:06Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:17:05Z", "temperature": 92.7, "temperature units": "F"}, {"date": "2023-10-10T19:18:05Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:19:05Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:21:12Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:22:12Z", "temperature": 92.2, "temperature units": "F"}, {"date": "2023-10-10T19:23:12Z", "temperature": 92.2, "temperature units": "F"}];
+            //generateData("x * 2 + 7", 0, 10, 0.5);
+            //generateData(jsonLocal);
+            function updateData(jsonLocal){
+                xValues = [];
+                yValues = [];
+                // need to convert json into array for anychart
+                for(i = 0; i < jsonLocal.length; i++) {
+                    console.log(jsonLocal[i]);
+                    var date = new Date(jsonLocal[i].date);
+                    xValues.push(date.toLocaleString());
+                    yValues.push(jsonLocal[i].temperature);
+                }; 
+                console.log(xValues);
+                console.log(yValues);  
+                historyChart.data.datasets[0].data = yValues;
+                historyChart.data.labels = xValues;
+                historyChart.update();             
+            };
+            // function addData(chart, label, newData) {
+            //     chart.data.labels.push(label);
+            //     chart.data.datasets.forEach((dataset) => {
+            //         dataset.data.push(newData);
+            //     });
+            //     chart.update();
+            // }
+
+            // function removeData(chart) {
+            //     chart.data.labels.pop();
+            //     chart.data.datasets.forEach((dataset) => {
+            //         dataset.data.pop();
+            //     });
+            //     chart.update();
+            // }
+            function drawChart() {    
+                historyChart = new Chart("myChart", {
+                    type: "line",
+                    data: {
+                        labels: xValues,
+                        datasets: [{
+                        fill: false,
+                        pointRadius: 1,
+                        borderColor: "rgba(255,0,0,0.5)",
+                        data: yValues
+                        }]
+                    },    
+                    options: {
+                        legend: {display: false},
+                        title: {
+                        display: true,
+                        text: "Core Temperature",
+                        fontSize: 16
+                        }
+                    }
+                });            
+            }
+            // function drawChart(json) {    
+
+            //     // need to convert json into array for anychart
+            //     var data = [];
+            //     for(i = 0; i < json.length; i++) {
+            //     console.log(json[i]);
+            //     data[i] =  [json[i].date, json[i].temperature];
+            //     console.log(data[i]);
+            //     };
+
+            //     console.log(data);
+                            
+            //     // create a data set
+            //     var dataSet = anychart.data.set(data);
+
+            //     // map the data for all series
+            //     var firstSeriesData = dataSet.mapAs({x: 0, value: 1});
+
+            //     // create a line chart
+            //     var chart = anychart.line();
+
+            //     // create the series and name them
+            //     var firstSeries = chart.line(firstSeriesData);
+            //     firstSeries.name("Ian's Pico");
+
+            //     // add a legend
+            //     chart.legend().enabled(true);
+
+            //     // add a title
+            //     chart.title("Core Temperature");
+
+            //     // specify where to display the chart
+            //     chart.container("graph-container");
+
+            //     // draw the resulting chart
+            //     chart.draw();
+
+            // }
+            function onBodyLoad(){
+                drawGauge();
+                setTimeIntervalGauge();
+                setTimeIntervalHistory();
+                getTemperature();
+                setLEDstate();
+                setGPIOstate();
+                resize();
+                drawChart();
+                updateData(initialValues);
+            }
+    </script>
+    </head>
+    <body onLoad="onBodyLoad()"> 
+
+        <h2>Raspberry Pi Pico</h1>
+
+        <div class="features ">
+            <div class="f-card c1 c1-md c1-lg">
+                <h3>Core Pico Temperature</h2>
+                <canvas id="tempGauge"></canvas>
+            </div>
+            <div class="f-card c1 c1-md c1-3-lg">
+                <h3>Temperature History</h2>
+                <div id="graph-container">
+                    <canvas id="myChart" style="width:100%;max-width:600px"></canvas>
+                </div>
+            </div>
+            <div class="f-card c1 c1-md c-1-lg">
+                <h3>Controls</h2>
+                <label onClick>
+                    <input type="checkbox" id="LED" name="LED" onclick="checkLEDState()" />
+                    LED
+                </label>
+                <label onClick>
+                    <input type="checkbox" id="GPIO" name="GPIO" onclick="checkGPIOState()" />
+                    GPIO 18
+                </label>
+            </div>  
+        </div>
+
+      
+
+    </body>
+</html>

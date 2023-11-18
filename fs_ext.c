@@ -42,6 +42,7 @@ static bool init = false;
 #define FS_FILE_FLAGS_HEADERS_OUT       0x40
 
 #define MAX_ROUTE_LEN 1460
+#define HEADER_LENGTH 128
 
 #define DEVICENAME "sd0"
 #define MOUNTPOINT "/sd0"
@@ -89,7 +90,7 @@ int fs_open_custom(struct fs_file *file, const char *name){
             if (fsize > 0){
                 // file exists we'll read it
                 file->data = NULL;
-                file->len = fsize;
+                file->len = fsize + HEADER_LENGTH; // ensure we have a big enough actual buffer to include headers - we'll adjust it when we put headers out in the first read
                 file->index = 0;
                 file->flags |= FS_FILE_FLAGS_HEADER_INCLUDED; // we are now providing our own headers
                 file->flags |= FS_FILE_FLAGS_CUSTOM;
@@ -111,6 +112,9 @@ int fs_open_custom(struct fs_file *file, const char *name){
         file->flags |= FS_FILE_FLAGS_ROUTE; // not used in fs.c
         
         Extension* pext = pvPortMalloc(sizeof(Extension));
+        if(file->pextension != NULL)
+            panic("File extension should be null\n");  
+
         file->pextension = pext; // store the handler for read
         pext->nameFunction = fun_ptr;
         pext->uri = pvPortMalloc(strlen(name)+1);
@@ -163,7 +167,7 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count){
             TRACE_PRINTF("Printing http headers\n");
             offset = printHTTPHeaders(buffer,file->len);
             file->flags |= FS_FILE_FLAGS_HEADERS_OUT;
-            file->len += offset; // allow for the headers
+            file->len += offset - HEADER_LENGTH; // allow for the headers but subtract the additional on open
         }
 
         TRACE_PRINTF("Reading custom\n");

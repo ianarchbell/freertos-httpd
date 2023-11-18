@@ -11,25 +11,26 @@
  * Pico includes
 */
 #include <pico/stdlib.h>
-#include "pico/cyw43_arch.h"
-#include "pico/util/datetime.h"
-#include "hardware/rtc.h"
+#include <pico/cyw43_arch.h>
+#include <pico/util/datetime.h>
+#include <hardware/rtc.h>
 
-#include "lwip/ip4_addr.h"
-#include "lwip/apps/httpd.h"
+#include <lwip/ip4_addr.h>
+#include <lwip/stats.h>
+#include <lwip/apps/httpd.h>
 
 /**
  * FreeRTOS includes
 */
-#include "FreeRTOS.h"
-#include "task.h"
+#include <FreeRTOS.h>
+#include <task.h>
 #include <timers.h>
 
 /**
  * Other library includes
 */
-#include "ff_headers.h"
-#include "tiny-json.h"
+
+#include <tiny-json.h>
 
 /**
  * 
@@ -44,6 +45,7 @@
 #include "idb_http_client.h"
 #include "idb_ping.h"
 #include "idb_router.h"
+#include "idb_ini.h"
 
 /**
  * Link status codes
@@ -70,6 +72,9 @@
 #define WIFI_SCAN IDB_WIFI_SCAN
 #define WIFI_SCAN_COUNT IDB_WIFI_SCAN_COUNT
 #define WORLD_TIME_API IDB_WORLD_TIME_API
+#define INI_TEST IDB_INI_TEST
+#define DATA_LOGGING IDB_DATA_LOGGING
+
 
 /**
  * Used to get local time zone
@@ -84,7 +89,6 @@ bool runCheck = false;
 ip_addr_t ping_addr;
 volatile TimerHandle_t checkup_timer;
 static TaskHandle_t th;
-struct netif netif;
 
 /**
  * 
@@ -310,6 +314,95 @@ void create_checkup_timer() {
 }
 #endif //CHECKUP
 
+void websocket_task(void *pvParameter)
+{
+    struct tcp_pcb *pcb = (struct tcp_pcb *) pvParameter;
+
+    for (;;) {
+        if (pcb == NULL || pcb->state != ESTABLISHED) {
+            printf("Connection closed, deleting task\n");
+            break;
+        }
+
+        int uptime = xTaskGetTickCount() * portTICK_PERIOD_MS / 1000;
+        int heap = (int) xPortGetFreeHeapSize();
+        //int led = !gpio_read(LED_PIN);
+
+        /* Generate response in JSON format */
+        char response[64];
+        int len = snprintf(response, sizeof (response),
+                "{\"uptime\" : \"%d\","
+                " \"heap\" : \"%d\","
+                " \"led\" : \"%d\"}", uptime, heap, "led_value");
+        if (len < sizeof (response))
+            websocket_write(pcb, (unsigned char *) response, len, WS_TEXT_MODE);
+        // Five seconds here seems to be fine but two is not...seems to overwhelm lwip    
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
+    }
+
+    vTaskDelete(NULL);
+}
+
+/**
+ * This function is called when websocket frame is received.
+ *
+ * Note: this function is executed on TCP thread and should return as soon
+ * as possible.
+ */
+void websocket_cb(struct tcp_pcb *pcb, uint8_t *data, u16_t data_len, uint8_t mode)
+{
+    printf("[websocket_callback]:\n%.*s\n", (int) data_len, (char*) data);
+
+    uint8_t response[2];
+    uint16_t val;
+
+    switch (data[0]) {
+        case 'A': // ADC
+            /* This should be done on a separate thread in 'real' applications */
+            val = 0xFFFF;
+            break;
+        case 'D': // Disable LED
+            //gpio_write(LED_PIN, true);
+            val = 0xDEAD;
+            break;
+        case 'E': // Enable LED
+            //gpio_write(LED_PIN, false);
+            val = 0xBEEF;
+            break;
+        default:
+            printf("Unknown command\n");
+            val = 0;
+            break;
+    }
+
+    response[1] = (uint8_t) val;
+    response[0] = val >> 8;
+
+    websocket_write(pcb, response, 2, WS_BIN_MODE);
+}
+
+/**
+ * This function is called when new websocket is open and
+ * creates a new websocket_task if requested URI equals '/stream'.
+ */
+void websocket_open_cb(struct tcp_pcb *pcb, const char *uri)
+{
+    printf("WS URI: %s\n", uri);
+    if (!strcmp(uri, "/stream")) {
+        printf("request for streaming\n");
+        xTaskCreate(&websocket_task, "websocket_task", 256, (void *) pcb, 2, NULL);
+    }
+}
+
+void httpd_task(void *pvParameters)
+{
+    websocket_register_callbacks((tWsOpenHandler) websocket_open_cb, (tWsHandler) websocket_cb);       
+    httpd_init();
+    for (;;){
+        // ensure this is a lower priority than main task or that task will be blocked by this loop
+    };
+}
+
 /**
  * 
  * Main task starts Wi-Fi, creates checkup timer, sets the RTC from NPT, initializes the HTTP server
@@ -317,20 +410,30 @@ void create_checkup_timer() {
  * 
 */
 void main_task(__unused void *params) {
+
+#if INI_TEST    
+    testIni();
+ #endif   
     
     start_wifi();
+    
 #if CHECKUP
     create_checkup_timer();
 #endif
+    runTimeStats();
     getNTPtime(&setRTC); // get UTC time
+
 #if WORLD_TIME_API
 // this requires the dev branch of PICO-SDK and there is an example in PICO-EXAMPLES branch 'origin/add_http_example'
     getHTTPClientResponse(HOST, URL_REQUEST, &getLocalTime); // get local time - this requires Peter Harper's PICO-SDK
 #endif
-    httpd_init();
 
+    xTaskCreate(&httpd_task, "HTTP Daemon", 4000, NULL, 3, NULL);
+
+#if DATA_LOGGING
     bool rc = logger_init();
     TRACE_PRINTF("Initializing data logger: %s\n", rc ? "true" : "false");
+#endif
 
     runTimeStats();
 
@@ -339,7 +442,8 @@ void main_task(__unused void *params) {
         if(runCheck)
             doCheckup();
 #endif            
-        vTaskDelay(100); // allow other tasks in
+        //vTaskDelay(100); // allow other tasks in
+        vTaskDelay(1000); // allow other tasks in
     }
     print_date();
 
@@ -371,7 +475,7 @@ void vLaunch( void) {
 // Note: All pvPortMallocs should be checked individually,
 // but we don't expect any to fail,
 // so this can help flag problems in Debug builds.
-void vApplicationMallocFailedHook(void) {
+void __attribute__((weak)) vApplicationMallocFailedHook(void) {
     TRACE_PRINTF("\nMalloc failed! Task: %s\n", pcTaskGetName(NULL));
     //__disable_irq(); /* Disable global interrupts. */
     vTaskSuspendAll();
@@ -379,12 +483,12 @@ void vApplicationMallocFailedHook(void) {
 }
 //#endif
 
-// void vApplicationStackOverflowHook( TaskHandle_t xTask,
-//                                     char *pcTaskName ){
-//     TRACE_PRINTF("Task stack overflow: %s\n", pcTaskName);
-//     vTaskSuspendAll();  
-//     //__BKPT(5);                                 
-// }
+void __attribute__((weak)) vApplicationStackOverflowHook( TaskHandle_t xTask,
+                                    char *pcTaskName ){
+    TRACE_PRINTF("Task stack overflow: %s\n", pcTaskName);
+    vTaskSuspendAll();  
+    //__BKPT(5);                                 
+}
 
 /**
  * 
@@ -394,7 +498,7 @@ void vApplicationMallocFailedHook(void) {
 int main( void )
 {
     stdio_init_all();
-    sleep_ms (2000); // wait to access to USB serial
+    //sleep_ms (2000); // only need this when not using probe
     /* Configure the hardware ready to run the demo. */
     const char *rtos_name;
 #if ( portSUPPORT_SMP == 1 )
