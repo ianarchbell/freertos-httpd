@@ -777,9 +777,18 @@
       ws.onmessage = function(evt) {
         console.log(evt.data);
         var stats = JSON.parse(evt.data);
-        let gpio = stats.descriptor;
         let event = stats.event;
-        let element = document.getElementById("DI1");
+        let gpio = stats.descriptor;
+        let id;
+        switch(gpio){
+          case 20:
+            id = "DI1";
+            break;
+          case 21:
+            id = "DI2";
+            break;  
+        }
+        element = document.getElementById(id);
         toggleSwitch(element);
         console.log(stats);
       };

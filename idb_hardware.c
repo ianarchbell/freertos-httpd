@@ -143,14 +143,14 @@ void digital_input_callback(uint gpio, uint32_t event) {
     printf("Event for GPIO: %d Event: event %d\n", gpio, event);
     if ((event & GPIO_IRQ_EDGE_FALL) && (event & GPIO_IRQ_EDGE_RISE)){
         printf("Rise and fall both detected\n");
-        event &= ~GPIO_IRQ_EDGE_FALL; // if we get both events just pass the rise
+        event &= ~GPIO_IRQ_EDGE_RISE; // if we get both events just pass the rise (if base state = high)
     }
     wsMessage wsMsg = { 0, GPIO_EVENT, gpio, event};
     if (sendWSMessageFromISR(wsMsg)){
-        printf("Sent wsMessage: %d, %d for GPIO %d, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, wsMsg.ulDescriptor, event);
+        printf("Queueing wsMessage: %d, %d for GPIO %d, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, wsMsg.ulDescriptor, event);
     }
     else{
-        printf("Failed to send wsMessage (websocket blocking?): %d, %d for GPIO %d, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, wsMsg.ulDescriptor, event);
+        printf("Failed to queue wsMessage (websocket blocking?): %d, %d for GPIO %d, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, wsMsg.ulDescriptor, event);
     }
 }
 

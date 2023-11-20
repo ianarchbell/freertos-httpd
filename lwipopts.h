@@ -18,6 +18,8 @@
 #define LWIP_HTTP_FILE_STATE                1 // enable state for each file
 #define LWIP_HTTPD_KILL_OLD_ON_CONNECTIONS_EXCEEDED   0 // see if makes a real difference to memory management
 
+#define WS_TIMEOUT 32
+
 /*********************/
 
 #define LWIP_HTTPD_CUSTOM_FILES             1 // for fs_open_custom and fs_read_custom
@@ -26,7 +28,7 @@
 #define LWIP_HTTPD_DYNAMIC_HEADERS          0 // we send our own headers
 #define LWIP_HTTPD_SUPPORT_POST             1 // required for POST implementation
 
-#define HTTPD_MAX_RETRIES                   8 //default 4
+#define HTTPD_MAX_RETRIES                   32 //default 4 - made high as the poll interval is so short
 #define HTTPD_POLL_INTERVAL                 1 // 4 x 500ms is default
 #define LWIP_HTTPD_SUPPORT_11_KEEPALIVE     1 // hopefully less overhead
 

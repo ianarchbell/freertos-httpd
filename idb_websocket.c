@@ -5,10 +5,16 @@
 */
 #include <FreeRTOS.h>
 #include <queue.h>
+#include <timers.h>
 #include <lwip/apps/httpd.h>
 
 #include "idb_config.h"
 #include "idb_websocket.h"
+
+#define KEEPALIVE_INTERVAL_MS 5000
+#define KEEPALIVE_EVENT 0x02
+
+bool bKeepaliveTimer = false;
 
 /* Queue used to send and receive complete struct AMessage structures. */
 QueueHandle_t xStructQueue = NULL;
@@ -70,10 +76,44 @@ BaseType_t sendWSMessageFromISR(wsMessage wsMsg){
                ( TickType_t ) 0 );
 }
 
-void websocket_task(void *pvParameter)
-{
-    struct tcp_pcb *pcb = (struct tcp_pcb *) pvParameter;
+void keepalive(TimerHandle_t xTimer){   
 
+    static int keepalive = 0;
+    keepalive++;    
+    int uptime = xTaskGetTickCount() * portTICK_PERIOD_MS / 1000;
+    int heap = (int) xPortGetFreeHeapSize();
+    //int led = cyw43_arch_gpio_get(CYW43_WL_GPIO_LED_PIN);
+
+    wsMessage wsMsg = { 0, KEEPALIVE_EVENT, uptime, heap};
+    if(sendWSMessage(wsMsg)){
+        printf("Keepalive message queued: %d, timer handle %d\n", keepalive, xTimer);
+    }
+}
+
+void create_keepalive_timer() {
+    // Create a repeating (parameter 3) timer
+    TimerHandle_t keepalive_timer = xTimerCreate("KEEPALIVE TIMER",
+                                pdMS_TO_TICKS(KEEPALIVE_INTERVAL_MS),
+                                pdTRUE,
+                                (void*) 0,
+                                keepalive
+                                );
+    
+    // Start the repeating timer
+    if (keepalive_timer != NULL){
+        xTimerStart(keepalive_timer, 0);
+        bKeepaliveTimer = true;
+    } 
+}
+
+void websocket_task(void *pvParameter)
+{    
+    if (bKeepaliveTimer == false){
+        create_keepalive_timer();  
+    }
+    printf("Websocket task\n");
+    
+    struct tcp_pcb *pcb = (struct tcp_pcb *) pvParameter;
     wsMessage wsMsg;
 
     for (;;) {
@@ -98,28 +138,11 @@ void websocket_task(void *pvParameter)
 
                 char buff[72];
 
-        //        int n = snprintf(buff, sizeof buff, "{ \"messageId\" : \"%d\", \"eventId\": \"%d\", \"descriptor\" : \"%d\", \"event\" : \"%d\" }", wsMsg.ulMessageID, wsMsg.ulEventId, wsMsg.ulDescriptor, wsMsg.ulEvent);
                 int n = snprintf(buff, sizeof buff, "{ \"messageId\" : %d, \"eventId\": %d, \"descriptor\" : %d, \"event\" : %d }", messageId, wsMsg.ulEventId, wsMsg.ulDescriptor, wsMsg.ulEvent);
-                printf("Websocket message received for ...: %d\n", wsMsg.ulDescriptor);
                 websocket_write(pcb, buff, n, WS_TEXT_MODE);
                 printf("Websocket write sent: %s\n", buff);
             }
         }
-
-        //int uptime = xTaskGetTickCount() * portTICK_PERIOD_MS / 1000;
-        //int heap = (int) xPortGetFreeHeapSize();
-        //int led = !gpio_read(LED_PIN);
-
-        /* Generate response in JSON format */
-        // char response[64];
-        // int len = snprintf(response, sizeof (response),
-        //         "{\"uptime\" : \"%d\","
-        //         " \"heap\" : \"%d\","
-        //         " \"led\" : \"%d\"}", uptime, heap, "led_value");
-        // if (len < sizeof (response))
-        //     websocket_write(pcb, (unsigned char *) response, len, WS_TEXT_MODE);
-        // Five seconds here seems to be fine but two is not...seems to overwhelm lwip    
-        //vTaskDelay(20000 / portTICK_PERIOD_MS);
     }
 
     vTaskDelete(NULL);
@@ -134,6 +157,7 @@ void websocket_task(void *pvParameter)
 void websocket_cb(struct tcp_pcb *pcb, uint8_t *data, u16_t data_len, uint8_t mode)
 {
     TRACE_PRINTF("[Websocket callback]:\n%.*s\n", (int) data_len, (char*) data);
+    printf("Websocket callback\n");
 
     uint8_t response[2];
     uint16_t val;
@@ -169,6 +193,7 @@ void websocket_cb(struct tcp_pcb *pcb, uint8_t *data, u16_t data_len, uint8_t mo
  */
 void websocket_open_cb(struct tcp_pcb *pcb, const char *uri)
 {
+    printf("Websocket open callback\n");
     TRACE_PRINTF("WS URI: %s\n", uri);
     if (!strcmp(uri, "/stream")) {
         TRACE_PRINTF("Websocket request for streaming\n");
@@ -177,6 +202,8 @@ void websocket_open_cb(struct tcp_pcb *pcb, const char *uri)
 }
 
 void websocket_init(){
+
+    printf("Websocket initializing\n");
 
     // create websocket message queue
     vCreateWSQueue();
