@@ -766,6 +766,7 @@
         ws.onopen = function(evt) { retries = 0; setMsg("done", "WebSocket is open."); };
         ws.onerror = function(evt) { setMsg("error", "WebSocket error!"); };
         ws.onmessage = function(evt) { onMessage(evt); };
+        ws.onclose = function(evt) { wsOpenStream() }; // reopen on close
         wsOpenStream();
         retries = 0;
       }
@@ -776,6 +777,10 @@
       ws.onmessage = function(evt) {
         console.log(evt.data);
         var stats = JSON.parse(evt.data);
+        let gpio = stats.descriptor;
+        let event = stats.event;
+        let element = document.getElementById("DI1");
+        toggleSwitch(element);
         console.log(stats);
       };
     }

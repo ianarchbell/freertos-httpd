@@ -27,7 +27,7 @@
 #define LWIP_HTTPD_SUPPORT_POST             1 // required for POST implementation
 
 #define HTTPD_MAX_RETRIES                   8 //default 4
-#define HTTPD_POLL_INTERVAL                 8 // 4 x 500ms is default
+#define HTTPD_POLL_INTERVAL                 1 // 4 x 500ms is default
 #define LWIP_HTTPD_SUPPORT_11_KEEPALIVE     1 // hopefully less overhead
 
 #define LWIP_SO_RCVTIMEO                    1 // Needed for Ping

@@ -31,27 +31,27 @@
 */
 
 // Digitial Input
-#define DI1 16
-#define DI2 17
+#define DI1 20 //16
+#define DI2 21 //17
 #define DI3 18
 #define DI4 19
 
 #define LED 99
 
 // Digital Output
-#define DO1 2
-#define DO2 3
+#define DO1 2 
+#define DO2 3 
 #define DO3 6
 #define DO4 7
 #define DO5 13
 #define DO6 14
 
 // Analog Output
-#define AO1 20 
-#define AO2 21
-#define AO3 22
+//#define AO1 20 // this is K4 on Pico Expansion Plus S1
+//#define AO2 21 // this is K3 on Pico Expansion Plus S1
+#define AO3 22 
 
-#define AI1 26
+#define AI1 26 // this is K2 on Pico Expansion Plus S1 (K1 is RUN)
 #define AI1_ADC 0
 #define AI2 27
 #define AI2_ADC 1

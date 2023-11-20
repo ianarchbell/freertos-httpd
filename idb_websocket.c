@@ -102,23 +102,24 @@ void websocket_task(void *pvParameter)
                 int n = snprintf(buff, sizeof buff, "{ \"messageId\" : %d, \"eventId\": %d, \"descriptor\" : %d, \"event\" : %d }", messageId, wsMsg.ulEventId, wsMsg.ulDescriptor, wsMsg.ulEvent);
                 printf("Websocket message received for ...: %d\n", wsMsg.ulDescriptor);
                 websocket_write(pcb, buff, n, WS_TEXT_MODE);
+                printf("Websocket write sent: %s\n", buff);
             }
         }
 
-        int uptime = xTaskGetTickCount() * portTICK_PERIOD_MS / 1000;
-        int heap = (int) xPortGetFreeHeapSize();
+        //int uptime = xTaskGetTickCount() * portTICK_PERIOD_MS / 1000;
+        //int heap = (int) xPortGetFreeHeapSize();
         //int led = !gpio_read(LED_PIN);
 
         /* Generate response in JSON format */
-        char response[64];
-        int len = snprintf(response, sizeof (response),
-                "{\"uptime\" : \"%d\","
-                " \"heap\" : \"%d\","
-                " \"led\" : \"%d\"}", uptime, heap, "led_value");
-        if (len < sizeof (response))
-            websocket_write(pcb, (unsigned char *) response, len, WS_TEXT_MODE);
+        // char response[64];
+        // int len = snprintf(response, sizeof (response),
+        //         "{\"uptime\" : \"%d\","
+        //         " \"heap\" : \"%d\","
+        //         " \"led\" : \"%d\"}", uptime, heap, "led_value");
+        // if (len < sizeof (response))
+        //     websocket_write(pcb, (unsigned char *) response, len, WS_TEXT_MODE);
         // Five seconds here seems to be fine but two is not...seems to overwhelm lwip    
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        //vTaskDelay(20000 / portTICK_PERIOD_MS);
     }
 
     vTaskDelete(NULL);
@@ -171,7 +172,7 @@ void websocket_open_cb(struct tcp_pcb *pcb, const char *uri)
     TRACE_PRINTF("WS URI: %s\n", uri);
     if (!strcmp(uri, "/stream")) {
         TRACE_PRINTF("Websocket request for streaming\n");
-        xTaskCreate(&websocket_task, "websocket_task", 256, (void *) pcb, 2, NULL);
+        xTaskCreate(&websocket_task, "websocket_task", 256, (void *) pcb, 5, NULL);
     }
 }
 

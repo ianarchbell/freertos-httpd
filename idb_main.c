@@ -168,9 +168,9 @@ void doCheckup(){
 
     printf("Link status: %d", status);
     if (status == 3)
-        printf("(link up)");
+        printf(" (link up)\n");
     else
-        printf("(link not up)\n");    
+        printf(" (link not up)\n");    
 
     #if PING_ON
         do_ping();
@@ -218,13 +218,7 @@ void main_task(__unused void *params) {
  #endif   
     
     start_wifi();
-
-     hardware_init();
     
-#if CHECKUP
-    create_checkup_timer();
-#endif
-    runTimeStats();
     getNTPtime(&setRTC); // get UTC time
 
 #if WORLD_TIME_API
@@ -234,12 +228,18 @@ void main_task(__unused void *params) {
 
     http_init();
 
+#if CHECKUP
+    create_checkup_timer();
+#endif
+
 #if DATA_LOGGING
     bool rc = logger_init();
     TRACE_PRINTF("Initializing data logger: %s\n", rc ? "true" : "false");
 #endif
 
     runTimeStats();
+
+    hardware_init(); // last thing
 
     while(true) {
 #if CHECKUP        

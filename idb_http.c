@@ -17,7 +17,7 @@ void httpd_task(void *pvParameters)
     httpd_init();
     printf("Web server initialized\n");
     for (;;){
-        // ensure this is a lower priority than main task or that task will be blocked by this loop
+        vTaskDelay(100); // allow other tasks in
     };
 }
 

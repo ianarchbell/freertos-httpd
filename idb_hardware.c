@@ -140,33 +140,37 @@ void analogOutput(int doPort, double value){
 //enum  gpio_irq_level { GPIO_IRQ_LEVEL_LOW = 0x1u , GPIO_IRQ_LEVEL_HIGH = 0x2u , GPIO_IRQ_EDGE_FALL = 0x4u , GPIO_IRQ_EDGE_RISE = 0x8u };
 
 void digital_input_callback(uint gpio, uint32_t event) {
-    printf("Event for GPIO: %d\n", gpio, event);
+    printf("Event for GPIO: %d Event: event %d\n", gpio, event);
+    if ((event & GPIO_IRQ_EDGE_FALL) && (event & GPIO_IRQ_EDGE_RISE)){
+        printf("Rise and fall both detected\n");
+        event &= ~GPIO_IRQ_EDGE_FALL; // if we get both events just pass the rise
+    }
     wsMessage wsMsg = { 0, GPIO_EVENT, gpio, event};
     if (sendWSMessageFromISR(wsMsg)){
-        printf("Sent wsMessage: %d, %d for GPIO %d, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, wsMsg.ulDescriptor, wsMsg.ulEvent);
+        printf("Sent wsMessage: %d, %d for GPIO %d, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, wsMsg.ulDescriptor, event);
+    }
+    else{
+        printf("Failed to send wsMessage (websocket blocking?): %d, %d for GPIO %d, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, wsMsg.ulDescriptor, event);
     }
 }
 
+void configure_digital_input(int gpio, bool high_low){    
+    gpio_set_function(gpio, GPIO_FUNC_SIO);
+    gpio_set_dir(gpio, GPIO_IN);
+    if(high_low)
+        gpio_pull_up(gpio);
+    else
+        gpio_pull_down(gpio);  
+    gpio_set_irq_enabled_with_callback(gpio, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &digital_input_callback); 
+    gpio_set_input_enabled(gpio, true);     
+}
+
 void digital_input_init(){
-    gpio_init(DI1);
-    gpio_init(DI2);
-    gpio_init(DI3);
-    gpio_init(DI4);
 
-    gpio_set_dir(DI1, GPIO_IN);
-    gpio_set_dir(DI2, GPIO_IN);
-    gpio_set_dir(DI3, GPIO_IN);
-    gpio_set_dir(DI4, GPIO_IN);
-
-    gpio_pull_down(DI1);
-    gpio_pull_down(DI2);
-    gpio_pull_down(DI3);
-    gpio_pull_down(DI4);
-
-    gpio_set_irq_enabled_with_callback(DI1, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &digital_input_callback);
-    gpio_set_irq_enabled(DI2, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
-    gpio_set_irq_enabled(DI3, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
-    gpio_set_irq_enabled(DI4, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    configure_digital_input(DI1, true);
+    configure_digital_input(DI2, true);
+    configure_digital_input(DI3, true);
+    configure_digital_input(DI4, true);
 }
 
 void hardware_init(){
