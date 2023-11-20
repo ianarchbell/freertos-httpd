@@ -49,7 +49,7 @@ endif()
 
 add_executable(idb
         idb_main.c fs_ext.c hw_config.c idb_router.c idb_ntp_client.c idb_data_logger.c
-                idb_hardware.c idb_post.c idb_ini.c
+                idb_hardware.c idb_post.c idb_ini.c idb_network.c idb_websocket.c idb_http.c
                 idb_runtime_stats.c 
                 idb_ping.c
                 #idb_http_client.c 
@@ -69,7 +69,7 @@ target_compile_definitions(idb PRIVATE
 target_include_directories(idb PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/tiny-json
-        ${PICO_SDK_PATH}/include     
+        ${PICO_SDK_PATH}/include    
         ${FAT_PATH}/FreeRTOS+FAT+CLI/Lab-Project-FreeRTOS-FAT/include
         ${FAT_PATH}/FreeRTOS+FAT+CLI/portable/RP2040
         ${FAT_PATH}/FreeRTOS+FAT+CLI/include

@@ -11,13 +11,8 @@
  * Pico includes
 */
 #include <pico/stdlib.h>
-#include <pico/cyw43_arch.h>
 #include <pico/util/datetime.h>
 #include <hardware/rtc.h>
-
-#include <lwip/ip4_addr.h>
-#include <lwip/stats.h>
-#include <lwip/apps/httpd.h>
 
 /**
  * FreeRTOS includes
@@ -40,12 +35,16 @@
 #include "idb_config.h"
 #include "idb_ntp_client.h"
 #include "idb_data_logger.h"
-#include "idb_ntp_client.h"
 #include "idb_runtime_stats.h"
 #include "idb_http_client.h"
 #include "idb_ping.h"
 #include "idb_router.h"
 #include "idb_ini.h"
+#include "idb_network.h"
+#include "idb_http.h"
+#include "idb_websocket.h"
+#include "idb_test.h"
+#include "idb_hardware.h"
 
 /**
  * Link status codes
@@ -61,20 +60,14 @@
 /**
  * Task configuration
 */
-#define MAIN_TASK_PRIORITY 5
+#define MAIN_TASK_PRIORITY      5
 #define CHECKUP IDB_CHECKUP
 #define CHECKUP_INTERVAL_MS IDB_CHECKUP_INTERVAL * 1000 // once a minute ish
-#define PING_ADDR IDB_PING_ADDR
-#define PING_ON IDB_PING_ON
-#define PING_COUNT IDB_PING_COUNT
 #define STATS IDB_STATS
 #define ROUTE_TEST IDB_ROUTE_TEST
-#define WIFI_SCAN IDB_WIFI_SCAN
-#define WIFI_SCAN_COUNT IDB_WIFI_SCAN_COUNT
 #define WORLD_TIME_API IDB_WORLD_TIME_API
 #define INI_TEST IDB_INI_TEST
 #define DATA_LOGGING IDB_DATA_LOGGING
-
 
 /**
  * Used to get local time zone
@@ -86,7 +79,6 @@
  * Globals
 */
 bool runCheck = false;
-ip_addr_t ping_addr;
 volatile TimerHandle_t checkup_timer;
 static TaskHandle_t th;
 
@@ -164,123 +156,22 @@ void getLocalTime(char* buffer){
     
 }
 
-
-static int scan_result(void *env, const cyw43_ev_scan_result_t *result) {
-    if (result) {
-        TRACE_PRINTF("ssid: %-32s rssi: %4d chan: %3d mac: %02x:%02x:%02x:%02x:%02x:%02x sec: %u\n",
-            result->ssid, result->rssi, result->channel,
-            result->bssid[0], result->bssid[1], result->bssid[2], result->bssid[3], result->bssid[4], result->bssid[5],
-            result->auth_mode);
-    }
-    return 0;
-}
-
-void wifi_scan(){
-    absolute_time_t scan_time = nil_time;
-    bool scan_in_progress = false;
-    for (int i = 0; i < WIFI_SCAN_COUNT; i++) {
-        if (absolute_time_diff_us(get_absolute_time(), scan_time) < 0) {
-            if (!scan_in_progress) {
-                cyw43_wifi_scan_options_t scan_options = {0};
-                int err = cyw43_wifi_scan(&cyw43_state, &scan_options, NULL, scan_result);
-                if (err == 0) {
-                    TRACE_PRINTF("Performing wifi scan\n");
-                    scan_in_progress = true;
-                } else {
-                    TRACE_PRINTF("Failed to start scan: %d\n", err);
-                    scan_time = make_timeout_time_ms(3000); // wait 3s and try again
-                }
-            } else if (!cyw43_wifi_scan_active(&cyw43_state)) {
-                scan_time = make_timeout_time_ms(10000); // wait 10s and scan again
-                scan_in_progress = false; 
-            }
-        }
-        // the following #ifdef is only here so this same example can be used in multiple modes;
-        // you do not need it in your code
-#if PICO_CYW43_ARCH_POLL
-        // if you are using pico_cyw43_arch_poll, then you must poll periodically from your
-        // main loop (not from a timer) to check for Wi-Fi driver or lwIP work that needs to be done.
-        cyw43_arch_poll();
-        // you can poll as often as you like, however if you have nothing else to do you can
-        // choose to sleep until either a specified time, or cyw43_arch_poll() has work to do:
-        cyw43_arch_wait_for_work_until(scan_time);
-#else
-        // if you are not using pico_cyw43_arch_poll, then WiFI driver and lwIP work
-        // is done via interrupt in the background. This sleep is just an example of some (blocking)
-        // work you might be doing.
-       sleep_ms(1000);
-#endif
-    }
-}
-
-/**
- * 
- * Make the Wi-Fi connection in station mode
- * Requires WIFI_SSID and WIFI_PASSWORD to be set in the environment
- * 
-*/
-void start_wifi(){
-
-        if (cyw43_arch_init()) {
-        printf("Failed to initialise Wi-Fi\n");
-        return;
-    }
-
-    printf("\n\nConnecting to WiFi SSID: %s \n", WIFI_SSID);
-
-    cyw43_arch_enable_sta_mode();
-    uint32_t pm;
-    cyw43_wifi_get_pm(&cyw43_state, &pm);
-    cyw43_wifi_pm(&cyw43_state, CYW43_DEFAULT_PM & ~0xf); // disable power management
-    printf("Connecting to WiFi...\n");
-
-    for(int i = 0;i<4;i++){
-        if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_MIXED_PSK, 30000) == 0) {
-            printf("\nReady, preparing to run httpd at %s\n", ip4addr_ntoa(netif_ip4_addr(netif_list)));
-            break;
-        }
-        printf("Wi-Fi failed to start, retrying\n");
-    }
-    //cyw43_wifi_pm(&cyw43_state, pm); // reset power management
-}
-
-/**
- * 
- * Can be used to validate Wi-FI connection to the router
- * 
-*/
-void do_ping(){
-    
-    ipaddr_aton(PING_ADDR, &ping_addr);
-    ping_init(&ping_addr, PING_COUNT);
-}
-
-/**
- * 
- * Test of a route without using HTTTP
- * 
-*/
-void testRoute(){
-    
-    
-    char buffer[] = "/readlog/2023-10-17";
-    NameFunction* fun_ptr = isRoute(buffer, HTTP_GET);
-    if (fun_ptr){
-        char buf[1024]; 
-        route(fun_ptr, buf, sizeof buf, buffer);
-    }
-}
-
 #if CHECKUP
 void checkup(){
     runCheck = true;
 }
 
 void doCheckup(){
-    
-        TRACE_PRINTF("Routine checkup\n");
-        int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
-        TRACE_PRINTF("Link status: %d\n", status);
+
+
+    int status = getLinkStatus();
+
+    printf("Link status: %d", status);
+    if (status == 3)
+        printf("(link up)");
+    else
+        printf("(link not up)\n");    
+
     #if PING_ON
         do_ping();
     #endif
@@ -314,96 +205,6 @@ void create_checkup_timer() {
 }
 #endif //CHECKUP
 
-void websocket_task(void *pvParameter)
-{
-    struct tcp_pcb *pcb = (struct tcp_pcb *) pvParameter;
-
-    for (;;) {
-        if (pcb == NULL || pcb->state != ESTABLISHED) {
-            TRACE_PRINTF("Websocket connection closed, deleting task\n");
-            break;
-        }
-
-        int uptime = xTaskGetTickCount() * portTICK_PERIOD_MS / 1000;
-        int heap = (int) xPortGetFreeHeapSize();
-        //int led = !gpio_read(LED_PIN);
-
-        /* Generate response in JSON format */
-        char response[64];
-        int len = snprintf(response, sizeof (response),
-                "{\"uptime\" : \"%d\","
-                " \"heap\" : \"%d\","
-                " \"led\" : \"%d\"}", uptime, heap, "led_value");
-        if (len < sizeof (response))
-            websocket_write(pcb, (unsigned char *) response, len, WS_TEXT_MODE);
-        // Five seconds here seems to be fine but two is not...seems to overwhelm lwip    
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-    }
-
-    vTaskDelete(NULL);
-}
-
-/**
- * This function is called when websocket frame is received.
- *
- * Note: this function is executed on TCP thread and should return as soon
- * as possible.
- */
-void websocket_cb(struct tcp_pcb *pcb, uint8_t *data, u16_t data_len, uint8_t mode)
-{
-    TRACE_PRINTF("[Websocket callback]:\n%.*s\n", (int) data_len, (char*) data);
-
-    uint8_t response[2];
-    uint16_t val;
-
-    switch (data[0]) {
-        case 'A': // ADC
-            /* This should be done on a separate thread in 'real' applications */
-            val = 0xFFFF;
-            break;
-        case 'D': // Disable LED
-            //gpio_write(LED_PIN, true);
-            val = 0xDEAD;
-            break;
-        case 'E': // Enable LED
-            //gpio_write(LED_PIN, false);
-            val = 0xBEEF;
-            break;
-        default:
-            printf("Unknown command\n");
-            val = 0;
-            break;
-    }
-
-    response[1] = (uint8_t) val;
-    response[0] = val >> 8;
-
-    websocket_write(pcb, response, 2, WS_BIN_MODE);
-}
-
-/**
- * This function is called when new websocket is open and
- * creates a new websocket_task if requested URI equals '/stream'.
- */
-void websocket_open_cb(struct tcp_pcb *pcb, const char *uri)
-{
-    TRACE_PRINTF("WS URI: %s\n", uri);
-    if (!strcmp(uri, "/stream")) {
-        TRACE_PRINTF("Websocket request for streaming\n");
-        xTaskCreate(&websocket_task, "websocket_task", 256, (void *) pcb, 2, NULL);
-    }
-}
-
-void httpd_task(void *pvParameters)
-{
-    websocket_register_callbacks((tWsOpenHandler) websocket_open_cb, (tWsHandler) websocket_cb);       
-    httpd_init();
-    printf("Web server initialized\n");
-    for (;;){
-        // ensure this is a lower priority than main task or that task will be blocked by this loop
-    };
-}
-
 /**
  * 
  * Main task starts Wi-Fi, creates checkup timer, sets the RTC from NPT, initializes the HTTP server
@@ -417,6 +218,8 @@ void main_task(__unused void *params) {
  #endif   
     
     start_wifi();
+
+     hardware_init();
     
 #if CHECKUP
     create_checkup_timer();
@@ -429,7 +232,7 @@ void main_task(__unused void *params) {
     getHTTPClientResponse(HOST, URL_REQUEST, &getLocalTime); // get local time - this requires Peter Harper's PICO-SDK
 #endif
 
-    xTaskCreate(&httpd_task, "HTTP Daemon", 4000, NULL, 3, NULL);
+    http_init();
 
 #if DATA_LOGGING
     bool rc = logger_init();
@@ -448,7 +251,8 @@ void main_task(__unused void *params) {
     }
     print_date();
 
-    cyw43_arch_deinit();
+    http_deinit();
+
 }
 
 /**
@@ -471,29 +275,31 @@ void vLaunch( void) {
     vTaskStartScheduler();
 }
 
-// These hooks are defiend as part of the PICO-SDK implementation
-//#ifndef NDEBUG
-// Note: All pvPortMallocs should be checked individually,
-// but we don't expect any to fail,
-// so this can help flag problems in Debug builds.
+/**
+ * 
+ * These hooks are defined in various places and have the weak attribute here in case 
+ * it is not defined as we have specified to call hook in our config
+ * 
+ */ 
+
 void __attribute__((weak)) vApplicationMallocFailedHook(void) {
     TRACE_PRINTF("\nMalloc failed! Task: %s\n", pcTaskGetName(NULL));
     //__disable_irq(); /* Disable global interrupts. */
     vTaskSuspendAll();
     //__BKPT(5);
 }
-//#endif
 
 void __attribute__((weak)) vApplicationStackOverflowHook( TaskHandle_t xTask,
                                     char *pcTaskName ){
-    TRACE_PRINTF("Task stack overflow: %s\n", pcTaskName);
+    TRACE_PRINTF("\nStack overflow! Task: %s\n", pcTaskName);
     vTaskSuspendAll();  
     //__BKPT(5);                                 
 }
 
+
 /**
  * 
- * Initialize IO and launch FreeRTOS
+ * Launch FreeRTOS
  * 
 */
 int main( void )

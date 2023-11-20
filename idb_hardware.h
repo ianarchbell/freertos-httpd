@@ -8,5 +8,6 @@ float  getCoreTemperature();
 int16_t readADC(int adc);
 float readADCraw(int adc);
 void analogOutput(int doPort, double value);
+void hardware_init();
 
 #endif 

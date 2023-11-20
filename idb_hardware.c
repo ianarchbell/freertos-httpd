@@ -3,6 +3,8 @@
 #include <hardware/adc.h>
 #include <hardware/pwm.h>
 
+#include "idb_websocket.h"
+
 float  getCoreTemperature(char units){
 
 // The temperature sensor is on input 4:
@@ -133,4 +135,42 @@ void analogOutput(int doPort, double value){
     pwm_set_enabled (slice_num, true); 	
     TRACE_PRINTF("Wrap: %d, duty cycle: %03f\n", wrap, duty_cycle);
 }
+
+
+//enum  gpio_irq_level { GPIO_IRQ_LEVEL_LOW = 0x1u , GPIO_IRQ_LEVEL_HIGH = 0x2u , GPIO_IRQ_EDGE_FALL = 0x4u , GPIO_IRQ_EDGE_RISE = 0x8u };
+
+void digital_input_callback(uint gpio, uint32_t event) {
+    printf("Event for GPIO: %d\n", gpio, event);
+    wsMessage wsMsg = { 0, GPIO_EVENT, gpio, event};
+    if (sendWSMessageFromISR(wsMsg)){
+        printf("Sent wsMessage: %d, %d for GPIO %d, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, wsMsg.ulDescriptor, wsMsg.ulEvent);
+    }
+}
+
+void digital_input_init(){
+    gpio_init(DI1);
+    gpio_init(DI2);
+    gpio_init(DI3);
+    gpio_init(DI4);
+
+    gpio_set_dir(DI1, GPIO_IN);
+    gpio_set_dir(DI2, GPIO_IN);
+    gpio_set_dir(DI3, GPIO_IN);
+    gpio_set_dir(DI4, GPIO_IN);
+
+    gpio_pull_down(DI1);
+    gpio_pull_down(DI2);
+    gpio_pull_down(DI3);
+    gpio_pull_down(DI4);
+
+    gpio_set_irq_enabled_with_callback(DI1, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &digital_input_callback);
+    gpio_set_irq_enabled(DI2, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(DI3, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(DI4, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+}
+
+void hardware_init(){
+    digital_input_init();
+}
+
 
