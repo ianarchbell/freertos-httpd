@@ -26,7 +26,7 @@
       flex-wrap: wrap;
       flex-flow: row wrap;
       justify-content: start;
-      align-items: top;
+      /* align-items: top; */
     }
 
     .menu {
@@ -73,7 +73,7 @@
       display: flex;
       flex-wrap: wrap;
       flex-direction: row;
-      align-items: center;
+      /* align-items: left; */
       justify-content: space-evenly;
       background-color: #f0f0f0;
       border-radius: 20px;
@@ -87,7 +87,7 @@
       margin: 25px;
       display: flex;
       flex-direction: column;
-      align-items: left;
+      /* align-items: left; */
       background-color: #f0f0f0;
       border-radius: 20px;
       box-shadow: 6px 6px 12px #d3d3d3, -6px -6px 12px #ffffff;
@@ -107,6 +107,7 @@
       cursor: pointer;
     }
     .slider-container {
+      margin-top: 15px;
       display: flex;
       align-items: center;
 /*       margin-bottom: 20px; /* Increased spacing */ 
@@ -186,11 +187,13 @@
     .switch-text {
       font-size: 16px;
       margin-right: 10px;
+      margin-left: 30px;
     }
     
     .neumorphic-switch {
       width: 60px;
-      margin: 20px;
+      margin: 30px;
+      margin-left: 40px;
       height: 30px;
       border-radius: 15px;
       background-color: #f0f0f0;
@@ -222,7 +225,7 @@
     .neumorphic-light-container {
       display: flex;
       align-items: center;
-      margin: 20px;
+      margin: 30px;
     }
 
     .light-label {
@@ -231,7 +234,7 @@
     }
 
     .neumorphic-light {
-      margin-left: 32px;
+      margin-left: 60px;
       width: 30px;
       height: 30px;
       border-radius: 50%;
@@ -277,7 +280,29 @@
 
     </div>
 	<div class="major-panel">
+      <div class="control-panel">
+        <div class="neumorphic-switch-container">
+        <div class="switch-text">Digital Output 1</div>
+        <div class="neumorphic-switch" id="DO1" onclick="toggleSwitch(this);setState(this)">
+          <div class="neumorphic-switch-inner"></div>
+        </div>
+        </div>
+        <div class="neumorphic-switch-container">
+        <div class="switch-text">Digital Output 2</div>
+        <div class="neumorphic-switch" id="DO2" onclick="toggleSwitch(this);setState(this)">
+          <div class="neumorphic-switch-inner"></div>
+        </div>
+        </div>      
+        <div class="neumorphic-switch-container">
+        <div class="switch-text">Digital Output 3</div>
+        <div class="neumorphic-switch" id="DO3" onclick="toggleSwitch(this);setState(this)">
+          <div class="neumorphic-switch-inner"></div>
+        </div>
+        </div> 
+        </div>
+
     <div class="control-panel">
+
     <div class="slider-container">
       <div class="setting-label">Analog 1</div>
       <div class="neumorphic-slider" id="slider1">
@@ -301,85 +326,44 @@
       </div>
       <div class="setting-value" id="AO3">0</div>
     </div>
+    </div>
 
-    <div class="slider-container">
-      <div class="setting-label">Analog 4</div>
-      <div class="neumorphic-slider" id="slider4">
-        <div class="slider-thumb" id="thumb4"></div>
-      </div>
-      <div class="setting-value" id="AO4">0</div>
-    </div>
-    </div>
-    <div class="control-panel">
-    <div class="neumorphic-light-container">
-    <div class="light-label">Digital Input 1</div>
-    <div class="neumorphic-light" id="DI1"></div>
-    </div>
-    <div class="neumorphic-light-container">
-    <div class="light-label">Digital Input 2</div>
-    <div class="neumorphic-light" id="DI2"></div>
-    </div>
-    <div class="neumorphic-light-container">
-    <div class="light-label">Digital Input 3</div>
-    <div class="neumorphic-light" id="DI3"></div>
-    </div>
-    <div class="neumorphic-light-container">
-    <div class="light-label">Digital Input 4</div>
-    <div class="neumorphic-light" id="DI4"></div>
-    </div>
-	</div> 
-    <div class="control-panel">
+    <div class="control-panel">   
       <div class="neumorphic-switch-container">
-    	<div class="switch-text">Digital Output 1</div>
-    	<div class="neumorphic-switch" id="DO1" onclick="toggleSwitch(this);setState(this)">
-      	<div class="neumorphic-switch-inner"></div>
-  		</div>
+      <div class="switch-text">Digital Output 4</div>
+      <div class="neumorphic-switch" id="DO4" onclick="toggleSwitch(this);setState(this)">
+        <div class="neumorphic-switch-inner"></div>
+      </div>
+      </div>      
+      <div class="neumorphic-switch-container">
+      <div class="switch-text">Digital Output 5</div>
+      <div class="neumorphic-switch" id="DO5" onclick="toggleSwitch(this);setState(this)">
+        <div class="neumorphic-switch-inner"></div>
+      </div>
       </div>
       <div class="neumorphic-switch-container">
-    	<div class="switch-text">Digital Output 2</div>
-    	<div class="neumorphic-switch" id="DO2" onclick="toggleSwitch(this);setState(this)">
-      	<div class="neumorphic-switch-inner"></div>
-  		</div>
-      </div>      
-      <div class="neumorphic-switch-container">
-    	<div class="switch-text">Digital Output 3</div>
-    	<div class="neumorphic-switch" id="DO3" onclick="toggleSwitch(this);setState(this)">
-      	<div class="neumorphic-switch-inner"></div>
-  		</div>
-      </div>      
-      <div class="neumorphic-switch-container">
-    	<div class="switch-text">Digital Output 4</div>
-    	<div class="neumorphic-switch" id="DO4" onclick="toggleSwitch(this);setState(this)">
-      	<div class="neumorphic-switch-inner"></div>
-  		</div>
-      </div>      
-  </div>
-      <div class="control-panel">
-      <div class="neumorphic-switch-container">
-    	<div class="switch-text">Digital Output 5</div>
-    	<div class="neumorphic-switch" id="DO5" onclick="toggleSwitch(this);setState(this)">
-      	<div class="neumorphic-switch-inner"></div>
-  		</div>
+      <div class="switch-text">Digital Output 6</div>
+      <div class="neumorphic-switch" id="DO6" onclick="toggleSwitch(this);setState(this)">
+        <div class="neumorphic-switch-inner"></div>
       </div>
-      <div class="neumorphic-switch-container">
-    	<div class="switch-text">Digital Output 6</div>
-    	<div class="neumorphic-switch" id="DO6" onclick="toggleSwitch(this);setState(this)">
-      	<div class="neumorphic-switch-inner"></div>
-  		</div>
-      </div>      
-      <div class="neumorphic-switch-container">
-    	<div class="switch-text">Digital Output 7</div>
-    	<div class="neumorphic-switch" id="DO7" onclick="toggleSwitch(this);setState(this)">
-      	<div class="neumorphic-switch-inner"></div>
-  		</div>
-      </div>      
-      <div class="neumorphic-switch-container">
-    	<div class="switch-text">Digital Output 8</div>
-    	<div class="neumorphic-switch" id="DO8" onclick="toggleSwitch(this);setState(this)">
-      	<div class="neumorphic-switch-inner"></div>
-  		</div>
-      </div> 
+      </div>   
       </div>  
+ 
+      <div class="control-panel">
+        <div class="neumorphic-light-container">
+        <div class="light-label">Digital Input 1</div>
+        <div class="neumorphic-light" id="DI1"></div>
+        </div>
+        <div class="neumorphic-light-container">
+        <div class="light-label">Digital Input 2</div>
+        <div class="neumorphic-light" id="DI2"></div>
+        </div>
+        <div class="neumorphic-light-container">
+        <div class="light-label">Digital Input 3</div>
+        <div class="neumorphic-light" id="DI3"></div>
+        </div>
+        </div> 
+  </div>
   </div>
   <script>
     // Sets the appearance of an element to active or inactive

@@ -111,7 +111,6 @@ void websocket_task(void *pvParameter)
     if (bKeepaliveTimer == false){
         create_keepalive_timer();  
     }
-    printf("Websocket task\n");
     
     struct tcp_pcb *pcb = (struct tcp_pcb *) pvParameter;
     wsMessage wsMsg;

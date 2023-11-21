@@ -39,12 +39,13 @@
 #include "idb_http_client.h"
 #include "idb_ping.h"
 #include "idb_router.h"
-#include "idb_ini.h"
+//#include "idb_ini.h"
 #include "idb_network.h"
 #include "idb_http.h"
 #include "idb_websocket.h"
 #include "idb_test.h"
 #include "idb_hardware.h"
+#include "idb_state.h"
 
 /**
  * Link status codes
@@ -241,6 +242,10 @@ void main_task(__unused void *params) {
 
     hardware_init(); // last thing
 
+    state_init();
+
+    print_date();
+
     while(true) {
 #if CHECKUP        
         if(runCheck)
@@ -295,7 +300,6 @@ void __attribute__((weak)) vApplicationStackOverflowHook( TaskHandle_t xTask,
     vTaskSuspendAll();  
     //__BKPT(5);                                 
 }
-
 
 /**
  * 

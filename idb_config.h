@@ -31,34 +31,32 @@
 */
 
 // Digitial Input
-#define DI1 20 //16
-#define DI2 21 //17
-#define DI3 18
-#define DI4 19
-
-#define LED 99
+#define DI01 18 //16 
+#define DI02 20 //17
+#define DI03 21 //18 // this is K4 on Pico Expansion Plus S1
+//#define DI04 21 //19
 
 // Digital Output
-#define DO1 2 
-#define DO2 3 
-#define DO3 6
-#define DO4 7
-#define DO5 13
-#define DO6 14
+#define DO01 2 
+#define DO02 3 
+#define DO03 6
+#define DO04 7
+#define DO05 13
+#define DO06 14
 
 // Analog Output
-//#define AO1 20 // this is K4 on Pico Expansion Plus S1
-//#define AO2 21 // this is K3 on Pico Expansion Plus S1
-#define AO3 22 
+#define AO01 20 // this is K4 on Pico Expansion Plus S1
+#define AO02 21 // this is K3 on Pico Expansion Plus S1
+#define AO03 22 
 
-#define AI1 26 // this is K2 on Pico Expansion Plus S1 (K1 is RUN)
-#define AI1_ADC 0
-#define AI2 27
-#define AI2_ADC 1
-#define AI3 28
-#define AI3_ADC 3
-#define AI4 29 // system pin for measuring VSYS
-#define AI4_ADC 4
+#define AI01 26 // this is K2 on Pico Expansion Plus S1 (K1 is RUN)
+#define AI01_ADC 0
+#define AI02 27
+#define AI02_ADC 1
+#define AI03 28
+#define AI03_ADC 3
+#define AI04 29 // system pin for measuring VSYS
+#define AI04_ADC 4
 
 // Events
 #define GPIO_EVENT 1

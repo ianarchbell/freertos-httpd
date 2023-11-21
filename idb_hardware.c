@@ -167,10 +167,9 @@ void configure_digital_input(int gpio, bool high_low){
 
 void digital_input_init(){
 
-    configure_digital_input(DI1, true);
-    configure_digital_input(DI2, true);
-    configure_digital_input(DI3, true);
-    configure_digital_input(DI4, true);
+    configure_digital_input(DI01, true);
+    configure_digital_input(DI02, true);
+    configure_digital_input(DI03, true);
 }
 
 void hardware_init(){

@@ -49,9 +49,8 @@ endif()
 
 add_executable(idb
         idb_main.c fs_ext.c hw_config.c idb_router.c idb_ntp_client.c idb_data_logger.c
-                idb_hardware.c idb_post.c idb_ini.c idb_network.c idb_websocket.c idb_http.c
-                idb_runtime_stats.c 
-                idb_ping.c
+                idb_hardware.c idb_post.c idb_network.c idb_websocket.c idb_http.c 
+                idb_state.c idb_runtime_stats.c idb_ping.c
                 #idb_http_client.c 
                 #${PICO_LWIP_CONTRIB_PATH}/apps/ping/ping.c
                 ${PICO_LWIP_APP_PATH}/http/strcasestr.c
@@ -74,8 +73,8 @@ target_include_directories(idb PRIVATE
         ${FAT_PATH}/FreeRTOS+FAT+CLI/portable/RP2040
         ${FAT_PATH}/FreeRTOS+FAT+CLI/include
         ${PICO_LWIP_APP_INCLUDE_PATH}
-        ${FREERTOS_KERNEL_PATH}/include
-        ${FREERTOS_PATH}/portable/GCC/ARM_CM0
+        #${FREERTOS_KERNEL_PATH}/include
+        #${FREERTOS_KERNEL_PATH}/portable/GCC/ARM_CM0
         ${CMAKE_CURRENT_LIST_DIR} 
         ${PICO_LWIP_CONTRIB_PATH}/apps/ping
         ${MININI_PATH}/dev
