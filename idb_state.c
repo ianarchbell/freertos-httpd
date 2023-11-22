@@ -118,11 +118,9 @@ void state_deinit(){
  */
 void state_task(void *pvParameters)
 {   
-   
-    set_first_state();
-    //print_state();
-    save_state();
-    //initialize_state();
+
+    initialize_state();
+    reflect_state();
     print_state();
    
    stateMessage stateMsg;
@@ -139,10 +137,17 @@ void state_task(void *pvParameters)
                                 ( TickType_t ) 10 ) == pdPASS )
             {
                 printf("Receiving message for: %.4s\n", stateMsg.descriptor);
-                if (stateMsg.ulMessageType == STATE_ANALOG)
+                if (stateMsg.ulMessageType == STATE_ANALOG){
+                    printf("Setting state for %s, value %.8f\n",stateMsg.descriptor, stateMsg.val.float_value);
                     getStateItem(stateMsg.descriptor)->state_value.float_value = stateMsg.val.float_value;
-                else if  (stateMsg.ulMessageType == STATE_DIGITAL)
-                    getStateItem(stateMsg.descriptor)->state_value.int_value = stateMsg.val.int_value;   
+                    save_state_analog(stateMsg.descriptor);
+                }
+                else if  (stateMsg.ulMessageType == STATE_DIGITAL){
+                    printf("Setting state for %s, value %d\n",stateMsg.descriptor, stateMsg.val.int_value);
+                    getStateItem(stateMsg.descriptor)->state_value.int_value = stateMsg.val.int_value; 
+                    save_state_digital(stateMsg.descriptor);
+                }
+                print_state();  
             }
         }        
     }
@@ -173,7 +178,6 @@ int getADCFromDescriptor(char* descriptor){
     else
         return -1;    
 }
-
 
 /**
  * 
@@ -208,6 +212,22 @@ void print_state(){
     printf("DO05 : %d\n", getStateItem("DO05")->state_value.int_value);
     printf("DO06 : %d\n", getStateItem("DO06")->state_value.int_value);
 
+}
+
+void save_state_analog(char* descriptor){
+    int rc;
+    char buffer[32];
+
+    sprintf(buffer, "%.8f", getStateItem(descriptor)->state_value.float_value);
+    rc = ini_puts("ANALOG OUT", descriptor, buffer, inifile);
+}
+
+void save_state_digital(char* descriptor){
+    int rc;
+    char buffer[32];
+
+    sprintf(buffer, "%d", getStateItem(descriptor)->state_value.int_value);
+    rc = ini_puts("DIGITAL OUT", descriptor, buffer, inifile);
 }
 
 void save_state(){

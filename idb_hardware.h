@@ -3,11 +3,12 @@
 
 #include <pico/types.h>
 
-float  getCoreTemperature();
+float getCoreTemperature(char units);
 
 int16_t readADC(char* descriptor);
 float readADCraw(char* descriptor);
 void analogOutput(char* descriptor, float value);
+void digitalOutput(char* descriptor, int value);
 void hardware_init();
 
 #endif 

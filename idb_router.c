@@ -170,21 +170,8 @@ void setAnalogOut(NameFunction* ptr, char* buffer, int count, char* analogPort, 
  * 
 */
 void setGPIO(NameFunction* ptr, char* buffer, int count, char* descriptor, int gpio_value){
-    int gpio_pin = getGPIOFromDescriptor(descriptor);
-    gpio_init(gpio_pin);
-    gpio_set_dir(gpio_pin, GPIO_OUT);
-    gpio_put(gpio_pin, gpio_value);
-    // if (buffer){
-    //     char buff[64];       
-    //     int len = sprintf(buff, "%s", "{\"success\" : true}");
-    //     printJSONHeaders(buffer, len); // print out headers 
-    //     if((strlen(buffer) + len) < count){
-    //         strcat(buffer, buff);
-    //     }
-    //     else{
-    //         panic("buffer too small for setGPIO\n");
-    //     }
-    // }
+
+    digitalOutput(descriptor, gpio_value);
 }
 
 /**
@@ -313,7 +300,7 @@ void analogOut(NameFunction* ptr, char* buffer, int count, const char* uri){
         int analogPort = getGPIOFromDescriptor(descriptor);
         if(getSecondToken(valueString, uri)){
             double value = atof(valueString);
-            TRACE_PRINTF("Setting analog value port: %d, value: %03fn", analogPort, value);
+            TRACE_PRINTF("Setting analog value port: %d, value: %08f\n", analogPort, value);
             setAnalogOut(ptr, buffer, count, descriptor, value);
         }
     }
@@ -370,8 +357,12 @@ void returnGPIOs(NameFunction* ptr, char* buffer, int count){
 
     for (int i = 0 ; i < statesCount; i++){
         if (states[i].flags & STATE_DIGITAL){
-            int gpio_value = gpio_get(states[i].gpio);
+            int gpio_value = gpio_get(states[i].gpio); // TODO *** IAN need to ensure this is in sync with state value
             int len = snprintf(buf + offset, sizeof buf, "\"%s\" : %d, ", states[i].descriptor, gpio_value);
+            offset += len;
+        }
+        else if(states[i].flags & STATE_ANALOG){
+            int len = snprintf(buf + offset, sizeof buf, "\"%s\" : %.8f, ", states[i].descriptor,  states[i].state_value.float_value);
             offset += len;
         }
     }

@@ -19,7 +19,7 @@ typedef struct stateMessage
 {
    uint32_t         ulMessageID;
    uint32_t         ulMessageType;
-   char             descriptor[4];
+   char             descriptor[5];
    union val {
         uint32_t    int_value;
         float       float_value;
@@ -39,3 +39,5 @@ float getStateItemFloat(char* descriptor);
 int getStateItemInt(char* descriptor);
 stateItem* getStates();
 int getStatesCount();
+void save_state_analog(char* descriptor);
+void save_state_digital(char* descriptor);

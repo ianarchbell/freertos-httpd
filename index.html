@@ -451,6 +451,36 @@
       addSliderListeners('slider2', 'thumb2', 'AO02');
       addSliderListeners('slider3', 'thumb3', 'AO03');
     });
+    function positionSlider(valueId){
+      let sliderId;
+      let thumbId;
+
+       switch(valueId){
+        case 'AO01':
+          sliderId = 'slider1';
+          thumbId = 'thumb1';
+          break;
+        case 'AO02':
+          sliderId = 'slider2';
+          thumbId = 'thumb2';
+          break;
+        case 'AO03':
+          sliderId = 'slider3';
+          thumbId = 'thumb3';
+          break;    
+       }
+      var slider = document.getElementById(sliderId);
+      var thumb = document.getElementById(thumbId);
+      var settingValue = document.getElementById(valueId);
+      var sliderRect = slider.getBoundingClientRect();
+      var maxPosition = sliderRect.width;
+      var maxValue = 3.3; // Depends on application as to what we show ADC MAX is 3.3
+      var value = settingValue.textContent;
+      if (value > maxValue)
+       value = maxValue;
+      var newPosition = value/maxValue * maxPosition; 
+      thumb.style.left = newPosition + 'px';
+    }
   </script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js"></script>
   <script>
@@ -603,7 +633,7 @@
             .then(json => {
                 console.log(json);
                 console.log(json.led);
-                setStatus('DO01', json.led);
+                setStatus('LED', json.led); // TODO have an element for the LED and a way to set it
         }).catch(err => console.error(err));
     };
     function setState(element){
@@ -628,7 +658,13 @@
           console.log(json);
           for (const [key, value] of Object.entries(json)) {
             console.log("Key: " + key + ' , ' + value);
-            setStatus(key, value);
+            if (key[0] == 'D')
+              setStatus(key, value);
+            else{
+              element = document.getElementById(key);
+              setAnalogValue(element, value.toFixed(2));
+              positionSlider(key);
+            }            
           }
         }).catch(err => console.error(err));
     };
@@ -683,6 +719,10 @@
         retries = 0;
       }
     }
+    function setAnalogValue(element, value){
+      console.log(element, value );
+      element.textContent = value;
+    }
     function wsOpenStream() {
       var uri = "/stream"
       var ws = new WebSocket("ws://" + location.host + uri);
@@ -692,8 +732,12 @@
         console.log(state);
         if(state.descriptor){
           element = document.getElementById(state.descriptor);
-          toggleSwitch(element);
+          if (state.descriptor[0] == 'D')
+            toggleSwitch(element);
+          else
+            setAnalogValue(element, state.val.float_value);
         }
+
       };
     }
     function wsWrite(data) {
