@@ -137,7 +137,6 @@ void digital_input_callback(uint gpio, uint32_t event) {
     else{
         printf("Failed to queue wsMessage (websocket blocking?): %d, %d for descriptor %s, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, descriptor, event);
     }
-
 }
 
 void configure_digital_input(char* descriptor, bool high_low){  

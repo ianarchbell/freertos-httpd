@@ -356,7 +356,7 @@ void returnGPIOs(NameFunction* ptr, char* buffer, int count){
     int statesCount = getStatesCount();
 
     for (int i = 0 ; i < statesCount; i++){
-        if (states[i].flags & STATE_DIGITAL_OUTPUT){
+        if (states[i].flags & (STATE_DIGITAL_OUTPUT | STATE_DIGITAL_INPUT)){
             int gpio_value = gpio_get(states[i].gpio); // TODO *** IAN need to ensure this is in sync with state value
             int len = snprintf(buf + offset, sizeof buf, "\"%s\" : %d, ", states[i].descriptor, gpio_value);
             offset += len;

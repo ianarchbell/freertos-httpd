@@ -10,5 +10,6 @@ float readADCraw(char* descriptor);
 void analogOutput(char* descriptor, float value);
 void digitalOutput(char* descriptor, int value);
 void hardware_init();
+void reflect_state();
 
 #endif 

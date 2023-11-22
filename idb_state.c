@@ -8,6 +8,7 @@
 
 #include "idb_state.h"
 #include "idb_config.h"
+#include "idb_hardware.h"
 
 /* Queue used to send and receive complete struct AMessage structures. */
 QueueHandle_t xStateQueue = NULL;
