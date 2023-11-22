@@ -16,6 +16,7 @@
 #include "idb_router.h"
 #include "idb_hardware.h"
 #include "idb_config.h"
+#include "idb_state.h"
 
 #include "tiny-json.h"
 
@@ -144,20 +145,32 @@ void setLED(NameFunction* ptr, char* buffer, int count, const char* uri){
 
 /**
  * 
+ * Gets the value of an analog output and returns json 
+ * 
+*/
+float getAnalogOut(NameFunction* ptr, char* buffer, int count, char* analogPort){
+    TRACE_PRINTF("Port value: %d, float value: %.5f\n", analogPort);
+    float analogValue = getStateItemFloat(analogPort);
+    return analogValue;
+}
+
+/**
+ * 
  * Sets the value of an analog output and returns json success
  * 
 */
-void setAnalogOut(NameFunction* ptr, char* buffer, int count, int analogPort, double value){
+void setAnalogOut(NameFunction* ptr, char* buffer, int count, char* analogPort, double value){
     TRACE_PRINTF("Port value: %d, float value: %.5f\n", analogPort, value);
     analogOutput(analogPort, value);
 }
 
 /**
  * 
- * Sets the value of a GPIO and returns json success
+ * Sets the value of a GPIO 
  * 
 */
-void setGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin, int gpio_value){
+void setGPIO(NameFunction* ptr, char* buffer, int count, char* descriptor, int gpio_value){
+    int gpio_pin = getGPIOFromDescriptor(descriptor);
     gpio_init(gpio_pin);
     gpio_set_dir(gpio_pin, GPIO_OUT);
     gpio_put(gpio_pin, gpio_value);
@@ -241,10 +254,9 @@ void adc(NameFunction* ptr, char* buffer, int count, const char* uri){
 
     if (buffer){
         char buff[64];
-        char token[64];
-        if(getFirstToken(token, uri)){
-            int adc = atoi(token);        
-            int16_t adc_value = readADC(adc);
+        char descriptor[64];
+        if(getFirstToken(descriptor, uri)){   
+            int16_t adc_value = readADC(descriptor);
             //float adc_value = readADCraw(adc);
 
             // Output JSON very simply
@@ -269,8 +281,9 @@ void adc(NameFunction* ptr, char* buffer, int count, const char* uri){
  * Returns the value of the GPIO in json
  * 
 */
-void returnGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin){
+void returnGPIO(NameFunction* ptr, char* buffer, int count, char* descriptor){
     
+    int gpio_pin = getGPIOFromDescriptor(descriptor);
     int gpio_value = (int)gpio_get(gpio_pin);
 
     if (buffer){
@@ -294,14 +307,28 @@ void returnGPIO(NameFunction* ptr, char* buffer, int count, int gpio_pin){
  * 
 */
 void analogOut(NameFunction* ptr, char* buffer, int count, const char* uri){
-    char token[64];
-    if(getFirstToken(token, uri)){
-        int analogPort = atoi(token);
-        if(getSecondToken(token, uri)){
-            double value = atof(token);
-            TRACE_PRINTF("Setting analog value port: %d, value: %03f, token: %s\n", analogPort, value, token);
-            setAnalogOut(ptr, buffer, count, analogPort, value);
+    char descriptor[64];
+    char valueString[32];
+    if(getFirstToken( descriptor, uri )){
+        int analogPort = getGPIOFromDescriptor(descriptor);
+        if(getSecondToken(valueString, uri)){
+            double value = atof(valueString);
+            TRACE_PRINTF("Setting analog value port: %d, value: %03fn", analogPort, value);
+            setAnalogOut(ptr, buffer, count, descriptor, value);
         }
+    }
+}
+
+/**
+ * 
+ * Gets the currently set value for Analog Out ports
+ * 
+*/
+void analogOutValue(NameFunction* ptr, char* buffer, int count, const char* uri){
+    char port[64];
+    if(getFirstToken(port, uri)){      
+        TRACE_PRINTF("Getting analog value port: %s\n", port);
+        float analogValue = getAnalogOut(ptr, buffer, count, port);
     }
 }
 
@@ -311,47 +338,56 @@ void analogOut(NameFunction* ptr, char* buffer, int count, const char* uri){
  * 
 */
 void gpio(NameFunction* ptr, char* buffer, int count, const char* uri){
-    char token[64];
+    
+    char descriptor[16];
+    char value_string[32];
 
-    if(getFirstToken(token, uri)){
-        int gpioPin = atoi(token);
-        if(getSecondToken(token, uri)){
-            int value = atoi(token);
-            setGPIO(ptr, buffer, count, gpioPin, value);
+    if(getFirstToken(descriptor, uri)){
+        if(getSecondToken(value_string, uri)){
+            int value = atoi(value_string);
+            setGPIO(ptr, buffer, count, descriptor, value);
         }
         else{
-            returnGPIO(ptr, buffer, count, gpioPin);
+            returnGPIO(ptr, buffer, count, descriptor);
         }
     }
 }
 
 /**
  * 
- * Returns the value of all the GPIOs in json
+ * Returns the value of all the STATE GPIOs in json
  * 
 */
 void returnGPIOs(NameFunction* ptr, char* buffer, int count){
-    if (buffer){   
-        char buf[512]; 
-        strcpy(buf, "{");
-        int offset = 1;
-        int gpio_values[27]; 
-        for(int i = 0; i < 27; i ++){       
-            gpio_values[i] = (int)gpio_get(i);
-            int len = snprintf(buf + offset, sizeof buf, "\"%d\" : %d, ", i, gpio_values[i]);
+
+    char buf[512]; 
+    
+    strcpy(buf, "{");
+    int offset = 1;
+
+    stateItem* states = getStates();
+    int statesCount = getStatesCount();
+
+    for (int i = 0 ; i < statesCount; i++){
+        if (states[i].flags & STATE_DIGITAL){
+            int gpio_value = gpio_get(states[i].gpio);
+            int len = snprintf(buf + offset, sizeof buf, "\"%s\" : %d, ", states[i].descriptor, gpio_value);
             offset += len;
         }
-        memset(buf+offset-2, '}', 1);
-        memset(buf+offset-1, '\0', 1);
-        
-        printJSONHeaders(buffer, count, offset-1);
+    }
+    
+    memset(buf+offset-2, '}', 1);
+    memset(buf+offset-1, '\0', 1);
 
-        if(strlen(buffer) + offset < count){
-            strcat(buffer, buf);
-        }
-        else{
-            panic("buffer too small for returnGPIOs\n");
-        }
+    printf("%s", buf);
+    
+    printJSONHeaders(buffer, count, offset-1);
+
+    if(strlen(buffer) + offset < count){
+        strcat(buffer, buf);
+    }
+    else{
+        panic("buffer too small for returnGPIOs\n");
     }
 }
 
@@ -402,7 +438,7 @@ int extractJSONGPIOValues(int values[27], char* parms){
 
 /**
  * 
- * Returns the state of all the GPIOs in a passed array of integers
+ * Returns the state of all the GPIOs in a passed array of integers *** TODO IAN
  * Returns -1 on failure
 */
 int extractGPIOValues(int values[27], const char* uri){
@@ -445,7 +481,8 @@ int extractGPIOValues(int values[27], const char* uri){
 
 /**
  * 
- * Handles gpios as json array and sets values as appropriately
+ * Handles gpios as json array and sets values as appropriately *** TO MIGRATE TO NEW ARCH IAN *** DO NOT USE
+ * Needs to change from integer to char*
  * 
 */
 int gpioJSONArray(NameFunction* ptr, char* buffer, int count, const char* uri){
@@ -483,7 +520,8 @@ int gpioJSONArray(NameFunction* ptr, char* buffer, int count, const char* uri){
        
         if (values[i] != -1){
             TRACE_PRINTF("Setting GPIO %d to %d\n", i, values[i]);
-             setGPIO(ptr, buffer, count, i, values[i]);
+             char* descriptor = getDescriptorFromGPIO(i);
+             setGPIO(ptr, buffer, count, descriptor, values[i]);
         }
         else
             TRACE_PRINTF("Ignoring GPIO %d\n", i);    
@@ -492,7 +530,7 @@ int gpioJSONArray(NameFunction* ptr, char* buffer, int count, const char* uri){
 
 /**
  * 
- * Handles gpio array /gpioarray/0,1,1,0... from 0-26
+ * Handles gpio array /gpioarray/0,1,1,0... from 0-26 *** TO DO IAN
  * Leave out the values you want unchanged
  * 
 */
@@ -513,7 +551,8 @@ void gpioArray(NameFunction* ptr, char* buffer, int count, const char* uri){
        
         if (values[i] != -1){
             TRACE_PRINTF("Setting GPIO %d to %d\n", i, values[i]);
-             setGPIO(ptr, buffer, count, i, values[i]);
+            char* descriptor = getDescriptorFromGPIO(i); 
+            setGPIO(ptr, buffer, count, descriptor, values[i]);
         }
         else
             TRACE_PRINTF("Ignoring GPIO %d\n", i);    
@@ -732,6 +771,7 @@ NameFunction routes[] =
     { "/led/:value", (void*) *setLED, HTTP_POST, NULL }, 
     { "/adc/:adc", (void*) *adc, HTTP_GET, NULL },  
     { "/gpio/:gpio", (void*) *gpio, HTTP_GET, NULL },  
+    { "/analogout/:port", (void*) *analogOutValue, HTTP_GET, NULL },
     { "/analogout/:port/:value", (void*) *analogOut, HTTP_POST, NULL },
     { "/gpio/:gpio/:value", (void*) *gpio, HTTP_POST, NULL },
     { "/gpioarray", (void*) *returnGPIOs, HTTP_GET, NULL },  

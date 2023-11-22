@@ -5,9 +5,9 @@
 
 float  getCoreTemperature();
 
-int16_t readADC(int adc);
-float readADCraw(int adc);
-void analogOutput(int doPort, double value);
+int16_t readADC(char* descriptor);
+float readADCraw(char* descriptor);
+void analogOutput(char* descriptor, float value);
 void hardware_init();
 
 #endif 

@@ -1,12 +1,14 @@
 #include <FreeRTOS.h>
 
-#define DIGITAL_VALUE 0x01
-#define ANALOG_VALUE 0x02
+#define STATE_DIGITAL 0x01
+#define STATE_ANALOG 0x02
 
 typedef struct stateItem
 {
     char descriptor[5];
+    uint8_t flags;
     uint8_t gpio;
+    uint8_t adc;
     union state_value {
         uint32_t int_value;
         float    float_value;
@@ -29,3 +31,11 @@ void state_init();
 void initialize_state();
 void print_state();
 void save_state();
+BaseType_t sendStateMessage(stateMessage stateMsg);
+int getGPIOFromDescriptor(char* descriptor);
+int getADCFromDescriptor(char* descriptor);
+char* getDescriptorFromGPIO(int gpio);
+float getStateItemFloat(char* descriptor);
+int getStateItemInt(char* descriptor);
+stateItem* getStates();
+int getStatesCount();

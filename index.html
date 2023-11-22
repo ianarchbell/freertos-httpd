@@ -283,19 +283,19 @@
       <div class="control-panel">
         <div class="neumorphic-switch-container">
         <div class="switch-text">Digital Output 1</div>
-        <div class="neumorphic-switch" id="DO1" onclick="toggleSwitch(this);setState(this)">
+        <div class="neumorphic-switch" id="DO01" onclick="toggleSwitch(this);setState(this)">
           <div class="neumorphic-switch-inner"></div>
         </div>
         </div>
         <div class="neumorphic-switch-container">
         <div class="switch-text">Digital Output 2</div>
-        <div class="neumorphic-switch" id="DO2" onclick="toggleSwitch(this);setState(this)">
+        <div class="neumorphic-switch" id="DO02" onclick="toggleSwitch(this);setState(this)">
           <div class="neumorphic-switch-inner"></div>
         </div>
         </div>      
         <div class="neumorphic-switch-container">
         <div class="switch-text">Digital Output 3</div>
-        <div class="neumorphic-switch" id="DO3" onclick="toggleSwitch(this);setState(this)">
+        <div class="neumorphic-switch" id="DO03" onclick="toggleSwitch(this);setState(this)">
           <div class="neumorphic-switch-inner"></div>
         </div>
         </div> 
@@ -308,7 +308,7 @@
       <div class="neumorphic-slider" id="slider1">
         <div class="slider-thumb" id="thumb1"></div>
       </div>
-      <div class="setting-value" id="AO1">0</div>
+      <div class="setting-value" id="AO01">0</div>
     </div>
 
     <div class="slider-container">
@@ -316,7 +316,7 @@
       <div class="neumorphic-slider" id="slider2">
         <div class="slider-thumb" id="thumb2"></div>
       </div>
-      <div class="setting-value" id="AO2">0</div>
+      <div class="setting-value" id="AO02">0</div>
     </div>
 
     <div class="slider-container">
@@ -324,26 +324,26 @@
       <div class="neumorphic-slider" id="slider3">
         <div class="slider-thumb" id="thumb3"></div>
       </div>
-      <div class="setting-value" id="AO3">0</div>
+      <div class="setting-value" id="AO03">0</div>
     </div>
     </div>
 
     <div class="control-panel">   
       <div class="neumorphic-switch-container">
       <div class="switch-text">Digital Output 4</div>
-      <div class="neumorphic-switch" id="DO4" onclick="toggleSwitch(this);setState(this)">
+      <div class="neumorphic-switch" id="DO04" onclick="toggleSwitch(this);setState(this)">
         <div class="neumorphic-switch-inner"></div>
       </div>
       </div>      
       <div class="neumorphic-switch-container">
       <div class="switch-text">Digital Output 5</div>
-      <div class="neumorphic-switch" id="DO5" onclick="toggleSwitch(this);setState(this)">
+      <div class="neumorphic-switch" id="DO05" onclick="toggleSwitch(this);setState(this)">
         <div class="neumorphic-switch-inner"></div>
       </div>
       </div>
       <div class="neumorphic-switch-container">
       <div class="switch-text">Digital Output 6</div>
-      <div class="neumorphic-switch" id="DO6" onclick="toggleSwitch(this);setState(this)">
+      <div class="neumorphic-switch" id="DO06" onclick="toggleSwitch(this);setState(this)">
         <div class="neumorphic-switch-inner"></div>
       </div>
       </div>   
@@ -352,15 +352,15 @@
       <div class="control-panel">
         <div class="neumorphic-light-container">
         <div class="light-label">Digital Input 1</div>
-        <div class="neumorphic-light" id="DI1"></div>
+        <div class="neumorphic-light" id="DI01"></div>
         </div>
         <div class="neumorphic-light-container">
         <div class="light-label">Digital Input 2</div>
-        <div class="neumorphic-light" id="DI2"></div>
+        <div class="neumorphic-light" id="DI02"></div>
         </div>
         <div class="neumorphic-light-container">
         <div class="light-label">Digital Input 3</div>
-        <div class="neumorphic-light" id="DI3"></div>
+        <div class="neumorphic-light" id="DI03"></div>
         </div>
         </div> 
   </div>
@@ -378,23 +378,6 @@
   </script>  
   <script>
     function postAnalogValue(valueId) {
-      switch(valueId){
-          case "AO1":
-            AO = 2;
-            break;
-
-          case "AO2":
-            AO = 3;
-            break;  
-
-          case "AO3":
-            AO = 4;
-            break; 
-
-          case "AO4":
-            AO = 5;
-            break; 
-      }
       let value = (document.getElementById(valueId)).textContent;
       console.log(valueId, value);
       fetch('http://192.168.50.212/analogout', {
@@ -404,11 +387,20 @@
           },
           body: new URLSearchParams({
               'value': value,
-              'port' : AO
+              'port' : valueId
           }),
           cache: 'no-store'
       });
-    }     
+    }  
+    function getAnalogValue(valueId) {
+        fetch('http://192.168.50.212/analogvalue/' + valueId)
+            .then(res => res.json())
+            .then(json => {
+                console.log(json);
+                var element = document.getElementById('AO01');
+                //gauge.value = json.temperature;
+        }).catch(err => console.error(err));
+    };    
     document.addEventListener("DOMContentLoaded", function() {
       function handleSliderInteraction(sliderId, thumbId, valueId, event) {
         var slider = document.getElementById(sliderId);
@@ -455,10 +447,9 @@
       }
 
       // Add listeners for each slider
-      addSliderListeners('slider1', 'thumb1', 'AO1');
-      addSliderListeners('slider2', 'thumb2', 'AO2');
-      addSliderListeners('slider3', 'thumb3', 'AO3');
-      addSliderListeners('slider4', 'thumb4', 'AO4');
+      addSliderListeners('slider1', 'thumb1', 'AO01');
+      addSliderListeners('slider2', 'thumb2', 'AO02');
+      addSliderListeners('slider3', 'thumb3', 'AO03');
     });
   </script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js"></script>
@@ -574,7 +565,7 @@
 
     function setTimeIntervalADCs() {
       const getADC1 = () => {
-      fetch('http://192.168.50.212/adc/1')
+      fetch('http://192.168.50.212/adc/AO01')
               .then(res => res.json())
               .then(json => {
                   console.log(json);
@@ -584,7 +575,7 @@
       };
       setInterval(getADC1, 10000);
       const getADC2 = () => {
-      fetch('http://192.168.50.212/adc/2')
+      fetch('http://192.168.50.212/adc/AO02')
               .then(res => res.json())
               .then(json => {
                   console.log(json);
@@ -594,7 +585,7 @@
       };
       setInterval(getADC2, 10000);
       const getADC3 = () => {
-      fetch('http://192.168.50.212/adc/3')
+      fetch('http://192.168.50.212/adc/AO03')
               .then(res => res.json())
               .then(json => {
                   console.log(json);
@@ -612,62 +603,20 @@
             .then(json => {
                 console.log(json);
                 console.log(json.led);
-                setStatus('DO1', json.led);
+                setStatus('DO01', json.led);
         }).catch(err => console.error(err));
     };
     function setState(element){
       console.log(element);
         var state = Number(isActive(element));
-        var DO;
-        switch(element.id){
-          case "DO1":
-            DO = "led";
-            gpio = null;
-            break;
-
-          case "DO2":
-            DO = "gpio";
-            gpio = 16;
-            break;  
-
-          case "DO3":
-            DO = "gpio";
-            gpio = 17;
-            break; 
-
-          case "DO4":
-            DO = "gpio";
-            gpio = 18;
-            break; 
-            
-          case "DO5":
-            DO = "gpio";
-            gpio = 19;
-            break;    
-          
-          case "DO6":
-            DO = "gpio";
-            gpio = 20;
-            break; 
-          
-          case "DO7":
-            DO = "gpio";
-            gpio = 21;
-            break; 
-            
-          case "DO8":
-            DO = "gpio";
-            gpio = 22;
-            break;         
-        }
-        fetch('http://192.168.50.212/' + DO, {
+        fetch('http://192.168.50.212/gpio', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
             },
             body: new URLSearchParams({
                 'value': state,
-                'gpio' : gpio
+                'gpio' : element.id
             }),
             cache: 'no-store'
         })
@@ -677,30 +626,9 @@
         .then(res => res.json())
         .then(json => {
           console.log(json);
-          for(let i = 16; i < 23; i++){
-            switch(i){
-              case 16:
-                setStatus('DO2', json[i]);
-                break;
-              case 17:
-                setStatus('DO3', json[i]);
-                break;
-              case 18:
-                setStatus('DO4', json[i]);
-                break;
-              case 19:
-                setStatus('DO5', json[i]);
-                break;
-              case 20:
-                setStatus('DO6', json[i]);
-                break;
-              case 21:
-                setStatus('DO7', json[i]);
-                break;
-              case 22:
-                setStatus('DO8', json[i]);
-                break;
-            }
+          for (const [key, value] of Object.entries(json)) {
+            console.log("Key: " + key + ' , ' + value);
+            setStatus(key, value);
           }
         }).catch(err => console.error(err));
     };
@@ -760,21 +688,12 @@
       var ws = new WebSocket("ws://" + location.host + uri);
       ws.onmessage = function(evt) {
         console.log(evt.data);
-        var stats = JSON.parse(evt.data);
-        let event = stats.event;
-        let gpio = stats.descriptor;
-        let id;
-        switch(gpio){
-          case 20:
-            id = "DI1";
-            break;
-          case 21:
-            id = "DI2";
-            break;  
+        var state = JSON.parse(evt.data);
+        console.log(state);
+        if(state.descriptor){
+          element = document.getElementById(state.descriptor);
+          toggleSwitch(element);
         }
-        element = document.getElementById(id);
-        toggleSwitch(element);
-        console.log(stats);
       };
     }
     function wsWrite(data) {

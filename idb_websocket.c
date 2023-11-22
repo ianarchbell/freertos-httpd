@@ -27,7 +27,7 @@ void vCreateWSQueue( void )
    nothing uses the queue until after it has been created. */
    xStructQueue = xQueueCreate(
                          /* The number of items the queue can hold. */
-                         10,
+                         2,
                          /* Size of each item is big enough to hold the
                          whole structure. */
                          sizeof( wsMessage ) );
@@ -84,7 +84,11 @@ void keepalive(TimerHandle_t xTimer){
     int heap = (int) xPortGetFreeHeapSize();
     //int led = cyw43_arch_gpio_get(CYW43_WL_GPIO_LED_PIN);
 
-    wsMessage wsMsg = { 0, KEEPALIVE_EVENT, uptime, heap};
+    char* msg = pvPortMalloc(MAX_WS_MESSAGE);
+
+    int n = snprintf(msg, MAX_WS_MESSAGE, "\"uptime\" : %d, \"heap\" : %d", uptime, heap);
+
+    wsMessage wsMsg = { 0, KEEPALIVE_EVENT, msg};
     if(sendWSMessage(wsMsg)){
         printf("Keepalive message queued: %d, timer handle %d\n", keepalive, xTimer);
     }
@@ -135,10 +139,12 @@ void websocket_task(void *pvParameter)
                 static uint32_t messageId = 0;
                 messageId++;
 
-                char buff[72];
+                char buff[MAX_WS_MESSAGE];
 
-                int n = snprintf(buff, sizeof buff, "{ \"messageId\" : %d, \"eventId\": %d, \"descriptor\" : %d, \"event\" : %d }", messageId, wsMsg.ulEventId, wsMsg.ulDescriptor, wsMsg.ulEvent);
+                int n = snprintf((char*)&buff, sizeof buff, "{ \"messageId\" : %d, \"eventId\": %d, %s }", messageId, wsMsg.ulEventId, wsMsg.message);
                 websocket_write(pcb, buff, n, WS_TEXT_MODE);
+                if(wsMsg.ulEventId == KEEPALIVE_EVENT)
+                    vPortFree(wsMsg.message);
                 printf("Websocket write sent: %s\n", buff);
             }
         }

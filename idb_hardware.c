@@ -1,9 +1,12 @@
+#include <string.h>
+
 #include "idb_config.h"
 #include <pico/types.h>
 #include <hardware/adc.h>
 #include <hardware/pwm.h>
 
 #include "idb_websocket.h"
+#include "idb_state.h"
 
 float  getCoreTemperature(char units){
 
@@ -29,40 +32,20 @@ float  getCoreTemperature(char units){
     }
 }
 
-int16_t readADC(int ai){
+int16_t readADC(char* descriptor){
     adc_init();
-    int adc;
-    int gpio;
-    
-    switch(ai){
-        case 1:
-            gpio = 26;
-            adc = 0;
-            break;
-        case 2:
-            gpio = 27;
-            adc = 1;
-            break;
-        case 3:
-            gpio = 28;
-            adc = 2;
-            break;
-        case 4:
-            gpio = 29;
-            adc = 3;
-            break;   
-        default:
-            gpio = 26;
-            adc = 0;            
-    }
+
+    int gpio = getGPIOFromDescriptor(descriptor);
+    int adc = getADCFromDescriptor(descriptor);
+
     adc_gpio_init(gpio);
     adc_select_input(adc);
     return adc_read();
 }
 
-float readADCraw(int adc){     
+float readADCraw(char* ai){     
     const float conversionFactor = 3.3f / (1 << 12);
-    return (float)readADC(adc) * conversionFactor;
+    return (float)readADC(ai) * conversionFactor;
 }
 
 uint32_t pwm_set_freq_duty(uint slice_num, uint chan, uint32_t f, double d){
@@ -100,23 +83,17 @@ uint32_t pwm_set_freq_duty(uint slice_num, uint chan, uint32_t f, double d){
 //     /// \end::setup_pwm[]
 // }
 
-void analogOutput(int doPort, double value){
-    TRACE_PRINTF("Port %d, analog value: %03f\n", doPort, value);
-    int gpio = -1;
-     switch(doPort){
-        case 2:
-            gpio = 2; // 2 and 3 are on same slice (1)
-            break;
-        case 3:
-            gpio = 3;
-            break;
-        case 4:
-            gpio = 4; // 4 and 5 are on same slice (2)
-            break;
-        case 5:
-        default:
-            gpio = 5;            
-    }  
+void analogOutput(char* descriptor, float value){
+
+    stateMessage stateMsg;
+
+    strncpy(stateMsg.descriptor, descriptor, sizeof stateMsg.descriptor); 
+    stateMsg.val.float_value = value;
+    sendStateMessage(stateMsg);
+
+    TRACE_PRINTF("Port %d, analog value: %03f\n", descriptor, value);
+    
+    int gpio = getGPIOFromDescriptor(descriptor); 
 
     if (value > 3.3) // max value
         value = 3.3;
@@ -143,18 +120,26 @@ void digital_input_callback(uint gpio, uint32_t event) {
     printf("Event for GPIO: %d Event: event %d\n", gpio, event);
     if ((event & GPIO_IRQ_EDGE_FALL) && (event & GPIO_IRQ_EDGE_RISE)){
         printf("Rise and fall both detected\n");
-        event &= ~GPIO_IRQ_EDGE_RISE; // if we get both events just pass the rise (if base state = high)
+        event &= ~GPIO_IRQ_EDGE_RISE; // if we get both events just pass the fall (if base state = high)
     }
-    wsMessage wsMsg = { 0, GPIO_EVENT, gpio, event};
+    char* descriptor = getDescriptorFromGPIO(gpio);
+
+    int n = snprintf(messageBuff, MAX_BUFF, "\"descriptor\" : \"%s\", \"event\" : %d", descriptor, event);
+
+    // need to check we haven't already got something on queue - as there is only one buffer TODO ***
+
+    wsMessage wsMsg = { 0, GPIO_EVENT, messageBuff};
     if (sendWSMessageFromISR(wsMsg)){
-        printf("Queueing wsMessage: %d, %d for GPIO %d, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, wsMsg.ulDescriptor, event);
+        printf("Queueing wsMessage: %d, %d for descriptor %s, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, descriptor, event);
     }
     else{
-        printf("Failed to queue wsMessage (websocket blocking?): %d, %d for GPIO %d, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, wsMsg.ulDescriptor, event);
+        printf("Failed to queue wsMessage (websocket blocking?): %d, %d for descriptor %s, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, descriptor, event);
     }
+
 }
 
-void configure_digital_input(int gpio, bool high_low){    
+void configure_digital_input(char* descriptor, bool high_low){  
+    int gpio = getGPIOFromDescriptor(descriptor);  
     gpio_set_function(gpio, GPIO_FUNC_SIO);
     gpio_set_dir(gpio, GPIO_IN);
     if(high_low)
@@ -167,9 +152,9 @@ void configure_digital_input(int gpio, bool high_low){
 
 void digital_input_init(){
 
-    configure_digital_input(DI01, true);
-    configure_digital_input(DI02, true);
-    configure_digital_input(DI03, true);
+    configure_digital_input("DI01", true);
+    configure_digital_input("DI02", true);
+    configure_digital_input("DI03", true);
 }
 
 void hardware_init(){

@@ -7,8 +7,7 @@ typedef struct wsMessage
 {
    uint32_t ulMessageID;
    uint32_t ulEventId;
-   uint32_t ulDescriptor;
-   uint32_t ulEvent;
+   char*    message;
 } wsMessage;
 
 void websocket_init();

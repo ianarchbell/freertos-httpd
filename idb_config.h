@@ -21,6 +21,8 @@
 #define IDB_DATA_LOGGING 0
 #define IDB_INI_TEST 0
 
+#define MAX_WS_MESSAGE 256
+
 /**
  * 
  * Pinout - we really only have 12 pins available wthout an extender
@@ -31,9 +33,9 @@
 */
 
 // Digitial Input
-#define DI01 18 //16 
-#define DI02 20 //17
-#define DI03 21 //18 // this is K4 on Pico Expansion Plus S1
+#define DI01 19  
+#define DI02 20 // this is K3 on Pico Expansion Plus S1
+#define DI03 21 // this is K4 on Pico Expansion Plus S1
 //#define DI04 21 //19
 
 // Digital Output
@@ -41,13 +43,13 @@
 #define DO02 3 
 #define DO03 6
 #define DO04 7
-#define DO05 13
-#define DO06 14
+#define DO05 17
+#define DO06 18
 
 // Analog Output
-#define AO01 20 // this is K4 on Pico Expansion Plus S1
-#define AO02 21 // this is K3 on Pico Expansion Plus S1
-#define AO03 22 
+#define AO01 13 
+#define AO02 14
+#define AO03 16 
 
 #define AI01 26 // this is K2 on Pico Expansion Plus S1 (K1 is RUN)
 #define AI01_ADC 0
@@ -61,7 +63,9 @@
 // Events
 #define GPIO_EVENT 1
 
-static char buff[64]; // general purpose buffer 
+#define MAX_BUFF 256
+static char buff[MAX_BUFF]; // general purpose buffer 
+static char messageBuff[MAX_BUFF]; // general purpose buffer 
 
 static char* print_time(){
     datetime_t t = {0, 0, 0, 0, 0, 0, 0};
