@@ -19,22 +19,28 @@ FF_Disk_t *pxDisk = NULL;
 
 const char inifile[] = "/sd0/idb.ini";
 
-stateItem states[12] = {
+stateItem states[15] = {
 
-{"AO01\0", STATE_ANALOG, AO01, 0}, 
-{"AO02\0", STATE_ANALOG, AO02, 1},
-{"AO03\0", STATE_ANALOG, AO03, 2},
+{"AO01\0", STATE_ANALOG_OUTPUT, AO01, 0}, 
+{"AO02\0", STATE_ANALOG_OUTPUT, AO02, 1},
+{"AO03\0", STATE_ANALOG_OUTPUT, AO03, 2},
 
-{"DO01\0", STATE_DIGITAL, DO01, -1},
-{"DO02\0", STATE_DIGITAL, DO02, -1},
-{"DO03\0", STATE_DIGITAL, DO03, -1},
-{"DO04\0", STATE_DIGITAL, DO04, -1},
-{"DO05\0", STATE_DIGITAL, DO05, -1},
-{"DO06\0", STATE_DIGITAL, DO06, -1},
+// used in configuration but state not saved - always real time
+{"AI01\0", STATE_ANALOG_INPUT, AI01, -1},
+{"AI02\0", STATE_ANALOG_INPUT, AI02, -1},
+{"AI03\0", STATE_ANALOG_INPUT, AI03, -1},
 
-{"DI01\0", STATE_DIGITAL, DI01, -1},
-{"DI02\0", STATE_DIGITAL, DI02, -1},
-{"DI03\0", STATE_DIGITAL, DI03, -1}
+{"DO01\0", STATE_DIGITAL_OUTPUT, DO01, -1},
+{"DO02\0", STATE_DIGITAL_OUTPUT, DO02, -1},
+{"DO03\0", STATE_DIGITAL_OUTPUT, DO03, -1},
+{"DO04\0", STATE_DIGITAL_OUTPUT, DO04, -1},
+{"DO05\0", STATE_DIGITAL_OUTPUT, DO05, -1},
+{"DO06\0", STATE_DIGITAL_OUTPUT, DO06, -1},
+
+// used in configuration but state not saved - always real time
+{"DI01\0", STATE_DIGITAL_INPUT, DI01, -1},
+{"DI02\0", STATE_DIGITAL_INPUT, DI02, -1},
+{"DI03\0", STATE_DIGITAL_INPUT, DI03, -1}
 
 };
 
@@ -137,12 +143,12 @@ void state_task(void *pvParameters)
                                 ( TickType_t ) 10 ) == pdPASS )
             {
                 printf("Receiving message for: %.4s\n", stateMsg.descriptor);
-                if (stateMsg.ulMessageType == STATE_ANALOG){
+                if (stateMsg.ulMessageType == STATE_ANALOG_OUTPUT){
                     printf("Setting state for %s, value %.8f\n",stateMsg.descriptor, stateMsg.val.float_value);
                     getStateItem(stateMsg.descriptor)->state_value.float_value = stateMsg.val.float_value;
                     save_state_analog(stateMsg.descriptor);
                 }
-                else if  (stateMsg.ulMessageType == STATE_DIGITAL){
+                else if  (stateMsg.ulMessageType == STATE_DIGITAL_OUTPUT){
                     printf("Setting state for %s, value %d\n",stateMsg.descriptor, stateMsg.val.int_value);
                     getStateItem(stateMsg.descriptor)->state_value.int_value = stateMsg.val.int_value; 
                     save_state_digital(stateMsg.descriptor);

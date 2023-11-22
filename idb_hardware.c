@@ -90,7 +90,7 @@ void analogOutput(char* descriptor, float value){
 
     strncpy(stateMsg.descriptor, descriptor, sizeof stateMsg.descriptor); 
     stateMsg.val.float_value = value;
-    stateMsg.ulMessageType = STATE_ANALOG;
+    stateMsg.ulMessageType = STATE_ANALOG_OUTPUT;
     sendStateMessage(stateMsg);
     printf("Sent state message for %s, state: %d, value: %.08f", stateMsg.descriptor, stateMsg.ulMessageType, stateMsg.val.float_value);
     TRACE_PRINTF("Port %s, analog value: %.08f\n", descriptor, value);
@@ -167,10 +167,10 @@ void reflect_state(){
     int count = getStatesCount();
     stateItem* states = getStates();
     for(int i=0 ; i < count; i++){
-        if(states[i].flags == STATE_ANALOG){
+        if(states[i].flags == STATE_ANALOG_OUTPUT){
             analogOutput(states[i].descriptor, states[i].state_value.float_value);
         }
-        if(states[i].flags == STATE_DIGITAL){
+        if(states[i].flags == STATE_DIGITAL_OUTPUT){
             printf("digi out for %s", states[i].descriptor );
             digitalOutput(states[i].descriptor, states[i].state_value.int_value);           
         }
@@ -187,7 +187,7 @@ void digitalOutput(char* descriptor, int gpio_value){
 
     strncpy(stateMsg.descriptor, descriptor, sizeof stateMsg.descriptor); 
     stateMsg.val.int_value = gpio_value;
-    stateMsg.ulMessageType = STATE_DIGITAL;
+    stateMsg.ulMessageType = STATE_DIGITAL_OUTPUT;
     sendStateMessage(stateMsg);
     printf("Sent state message for %s, state: %d, value: %d", stateMsg.descriptor, stateMsg.ulMessageType, stateMsg.val.int_value);
     TRACE_PRINTF("Port %s, value: %d\n", descriptor, gpio_value);

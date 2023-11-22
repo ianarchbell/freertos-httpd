@@ -1,7 +1,10 @@
 #include <FreeRTOS.h>
 
-#define STATE_DIGITAL 0x01
-#define STATE_ANALOG 0x02
+#define STATE_DIGITAL_OUTPUT 0x01
+#define STATE_DIGITAL_INPUT  0x02
+#define STATE_ANALOG_OUTPUT  0x04
+#define STATE_ANALOG_INPUT   0x08
+
 
 typedef struct stateItem
 {
