@@ -143,14 +143,14 @@ void state_task(void *pvParameters)
                                 &( stateMsg ),
                                 ( TickType_t ) 10 ) == pdPASS )
             {
-                printf("Receiving message for: %.4s\n", stateMsg.descriptor);
+                TRACE_PRINTF("Receiving message for: %.4s\n", stateMsg.descriptor);
                 if (stateMsg.ulMessageType == STATE_ANALOG_OUTPUT){
-                    printf("Setting state for %s, value %.8f\n",stateMsg.descriptor, stateMsg.val.float_value);
+                    TRACE_PRINTF("Setting state for %s, value %.8f\n",stateMsg.descriptor, stateMsg.val.float_value);
                     getStateItem(stateMsg.descriptor)->state_value.float_value = stateMsg.val.float_value;
                     save_state_analog(stateMsg.descriptor);
                 }
                 else if  (stateMsg.ulMessageType == STATE_DIGITAL_OUTPUT){
-                    printf("Setting state for %s, value %d\n",stateMsg.descriptor, stateMsg.val.int_value);
+                    TRACE_PRINTF("Setting state for %s, value %d\n",stateMsg.descriptor, stateMsg.val.int_value);
                     getStateItem(stateMsg.descriptor)->state_value.int_value = stateMsg.val.int_value; 
                     save_state_digital(stateMsg.descriptor);
                 }
@@ -206,18 +206,18 @@ BaseType_t sendStateMessage(stateMessage stateMsg){
 
 void print_state(){
 
-    printf("\nANALOG OUT\n");
-    printf("AO01 : %.5f\n", getStateItem("AO01")->state_value.float_value);
-    printf("AO02 : %.5f\n", getStateItem("AO02")->state_value.float_value);
-    printf("AO03 : %.5f\n", getStateItem("AO03")->state_value.float_value);
+    TRACE_PRINTF("\nANALOG OUT\n");
+    TRACE_PRINTF("AO01 : %.5f\n", getStateItem("AO01")->state_value.float_value);
+    TRACE_PRINTF("AO02 : %.5f\n", getStateItem("AO02")->state_value.float_value);
+    TRACE_PRINTF("AO03 : %.5f\n", getStateItem("AO03")->state_value.float_value);
 
-    printf("\nDIGITAL OUT\n");
-    printf("DO01 : %d\n", getStateItem("DO01")->state_value.int_value);
-    printf("DO02 : %d\n", getStateItem("DO02")->state_value.int_value);
-    printf("DO03 : %d\n", getStateItem("DO03")->state_value.int_value);
-    printf("DO04 : %d\n", getStateItem("DO04")->state_value.int_value);
-    printf("DO05 : %d\n", getStateItem("DO05")->state_value.int_value);
-    printf("DO06 : %d\n", getStateItem("DO06")->state_value.int_value);
+    TRACE_PRINTF("\nDIGITAL OUT\n");
+    TRACE_PRINTF("DO01 : %d\n", getStateItem("DO01")->state_value.int_value);
+    TRACE_PRINTF("DO02 : %d\n", getStateItem("DO02")->state_value.int_value);
+    TRACE_PRINTF("DO03 : %d\n", getStateItem("DO03")->state_value.int_value);
+    TRACE_PRINTF("DO04 : %d\n", getStateItem("DO04")->state_value.int_value);
+    TRACE_PRINTF("DO05 : %d\n", getStateItem("DO05")->state_value.int_value);
+    TRACE_PRINTF("DO06 : %d\n", getStateItem("DO06")->state_value.int_value);
 
 }
 

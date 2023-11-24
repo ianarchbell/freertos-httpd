@@ -370,7 +370,7 @@ void returnGPIOs(NameFunction* ptr, char* buffer, int count){
     memset(buf+offset-2, '}', 1);
     memset(buf+offset-1, '\0', 1);
 
-    printf("%s", buf);
+    TRACE_PRINTF("GPIO array: %s", buf);
     
     printJSONHeaders(buffer, count, offset-1);
 
@@ -434,7 +434,7 @@ int extractJSONGPIOValues(int values[27], char* parms){
 */
 int extractGPIOValues(int values[27], const char* uri){
 
-    printf("Extracting GPIO values: %s\n", uri);
+    TRACE_PRINTF("Extracting GPIO values: %s\n", uri);
     char buff[128]; 
     char value[16];
 
@@ -486,7 +486,7 @@ int gpioJSONArray(NameFunction* ptr, char* buffer, int count, const char* uri){
 
     // extract the parmms from the uri
     // then extract the json values
-    printf("Extracting GPIO values: %s\n", uri);
+    TRACE_PRINTF("Extracting GPIO values: %s\n", uri);
     char buff[128]; 
     char value[16];
 

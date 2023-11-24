@@ -92,7 +92,7 @@ void analogOutput(char* descriptor, float value){
     stateMsg.val.float_value = value;
     stateMsg.ulMessageType = STATE_ANALOG_OUTPUT;
     sendStateMessage(stateMsg);
-    printf("Sent state message for %s, state: %d, value: %.08f", stateMsg.descriptor, stateMsg.ulMessageType, stateMsg.val.float_value);
+    TRACE_PRINTF("Sent state message for %s, state: %d, value: %.08f", stateMsg.descriptor, stateMsg.ulMessageType, stateMsg.val.float_value);
     TRACE_PRINTF("Port %s, analog value: %.08f\n", descriptor, value);
     
     int gpio = getGPIOFromDescriptor(descriptor); 
@@ -119,9 +119,9 @@ void analogOutput(char* descriptor, float value){
 //enum  gpio_irq_level { GPIO_IRQ_LEVEL_LOW = 0x1u , GPIO_IRQ_LEVEL_HIGH = 0x2u , GPIO_IRQ_EDGE_FALL = 0x4u , GPIO_IRQ_EDGE_RISE = 0x8u };
 
 void digital_input_callback(uint gpio, uint32_t event) {
-    printf("Event for GPIO: %d Event: event %d\n", gpio, event);
+    TRACE_PRINTF("Event for GPIO: %d Event: event %d\n", gpio, event);
     if ((event & GPIO_IRQ_EDGE_FALL) && (event & GPIO_IRQ_EDGE_RISE)){
-        printf("Rise and fall both detected\n");
+        TRACE_PRINTF("GPIO: rise and fall events both detected\n");
         event &= ~GPIO_IRQ_EDGE_RISE; // if we get both events just pass the fall (if base state = high)
     }
     char* descriptor = getDescriptorFromGPIO(gpio);
@@ -132,10 +132,10 @@ void digital_input_callback(uint gpio, uint32_t event) {
 
     wsMessage wsMsg = { 0, GPIO_EVENT, messageBuff};
     if (sendWSMessageFromISR(wsMsg)){
-        printf("Queueing wsMessage: %d, %d for descriptor %s, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, descriptor, event);
+        TRACE_PRINTF("Queueing wsMessage: %d, %d for descriptor %s, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, descriptor, event);
     }
     else{
-        printf("Failed to queue wsMessage (websocket blocking?): %d, %d for descriptor %s, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, descriptor, event);
+        TRACE_PRINTF("Failed to queue wsMessage (websocket blocking?): %d, %d for descriptor %s, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, descriptor, event);
     }
 }
 
@@ -170,7 +170,6 @@ void reflect_state(){
             analogOutput(states[i].descriptor, states[i].state_value.float_value);
         }
         if(states[i].flags == STATE_DIGITAL_OUTPUT){
-            printf("digi out for %s", states[i].descriptor );
             digitalOutput(states[i].descriptor, states[i].state_value.int_value);           
         }
     }
@@ -188,6 +187,6 @@ void digitalOutput(char* descriptor, int gpio_value){
     stateMsg.val.int_value = gpio_value;
     stateMsg.ulMessageType = STATE_DIGITAL_OUTPUT;
     sendStateMessage(stateMsg);
-    printf("Sent state message for %s, state: %d, value: %d", stateMsg.descriptor, stateMsg.ulMessageType, stateMsg.val.int_value);
+    TRACE_PRINTF("Sent state message for %s, state: %d, value: %d", stateMsg.descriptor, stateMsg.ulMessageType, stateMsg.val.int_value);
     TRACE_PRINTF("Port %s, value: %d\n", descriptor, gpio_value);
 }

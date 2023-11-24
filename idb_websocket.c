@@ -11,7 +11,6 @@
 #include "idb_config.h"
 #include "idb_websocket.h"
 
-#define KEEPALIVE_INTERVAL_MS 5000
 #define KEEPALIVE_EVENT 0x02
 
 bool bKeepaliveTimer = false;
@@ -90,14 +89,14 @@ void keepalive(TimerHandle_t xTimer){
 
     wsMessage wsMsg = { 0, KEEPALIVE_EVENT, msg};
     if(sendWSMessage(wsMsg)){
-        printf("Keepalive message queued: %d, timer handle %d\n", keepalive, xTimer);
+        TRACE_PRINTF("Keepalive message queued: %d, timer handle %d\n", keepalive, xTimer);
     }
 }
 
 void create_keepalive_timer() {
     // Create a repeating (parameter 3) timer
     TimerHandle_t keepalive_timer = xTimerCreate("KEEPALIVE TIMER",
-                                pdMS_TO_TICKS(KEEPALIVE_INTERVAL_MS),
+                                pdMS_TO_TICKS(WS_KEEPALIVE_INTERVAL_MS),
                                 pdTRUE,
                                 (void*) 0,
                                 keepalive
@@ -145,7 +144,7 @@ void websocket_task(void *pvParameter)
                 websocket_write(pcb, buff, n, WS_TEXT_MODE);
                 if(wsMsg.ulEventId == KEEPALIVE_EVENT)
                     vPortFree(wsMsg.message);
-                printf("Websocket write sent: %s\n", buff);
+                TRACE_PRINTF("Websocket write sent: %s\n", buff);
             }
         }
     }
@@ -162,7 +161,7 @@ void websocket_task(void *pvParameter)
 void websocket_cb(struct tcp_pcb *pcb, uint8_t *data, u16_t data_len, uint8_t mode)
 {
     TRACE_PRINTF("[Websocket callback]:\n%.*s\n", (int) data_len, (char*) data);
-    printf("Websocket callback\n");
+    TRACE_PRINTF("Websocket callback\n");
 
     uint8_t response[2];
     uint16_t val;
@@ -181,7 +180,7 @@ void websocket_cb(struct tcp_pcb *pcb, uint8_t *data, u16_t data_len, uint8_t mo
             val = 0xBEEF;
             break;
         default:
-            printf("Unknown command\n");
+            TRACE_PRINTF("Unknown command\n");
             val = 0;
             break;
     }
@@ -198,7 +197,7 @@ void websocket_cb(struct tcp_pcb *pcb, uint8_t *data, u16_t data_len, uint8_t mo
  */
 void websocket_open_cb(struct tcp_pcb *pcb, const char *uri)
 {
-    printf("Websocket open callback\n");
+    TRACE_PRINTF("Websocket open callback\n");
     TRACE_PRINTF("WS URI: %s\n", uri);
     if (!strcmp(uri, "/stream")) {
         TRACE_PRINTF("Websocket request for streaming\n");
@@ -208,7 +207,7 @@ void websocket_open_cb(struct tcp_pcb *pcb, const char *uri)
 
 void websocket_init(){
 
-    printf("Websocket initializing\n");
+    TRACE_PRINTF("Websocket initializing\n");
 
     // create websocket message queue
     vCreateWSQueue();
