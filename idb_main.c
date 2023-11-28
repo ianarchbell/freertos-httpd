@@ -83,6 +83,8 @@ bool runCheck = false;
 volatile TimerHandle_t checkup_timer;
 static TaskHandle_t th;
 
+extern testRoutes();
+
 /**
  * 
  * Callback to set the RTC using the result from NPT
@@ -309,6 +311,9 @@ void __attribute__((weak)) vApplicationStackOverflowHook( TaskHandle_t xTask,
 int main( void )
 {
     stdio_init_all();
+
+    testRoutes(); 
+
     //sleep_ms (2000); // only need this when not using probe
     /* Configure the hardware ready to run the demo. */
     const char *rtos_name;

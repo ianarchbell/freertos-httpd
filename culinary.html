@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Culinary Application</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: #f0f0f0;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 10px 10px 20px #bfbfbf, -10px -10px 20px #ffffff;
+            text-align: center;
+        }
+
+        input[type="text"],
+        input[type="checkbox"],
+        input[type="radio"] {
+            padding: 10px;
+            margin: 10px;
+            border: none;
+            border-radius: 10px;
+            box-shadow: inset 6px 6px 12px #bfbfbf, inset -6px -6px 12px #ffffff;
+            width: 200px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        input[type="submit"] {
+            padding: 15px 30px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        input[type="checkbox"],
+        input[type="radio"] {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Culinary Application</h2>
+
+        <form>
+            <input type="text" placeholder="Enter your recipe name">
+            <br>
+
+            <input type="text" placeholder="Enter ingredients">
+            <br>
+
+            <input type="text" placeholder="Enter instructions">
+            <br>
+
+            <label for="vegetarian">Vegetarian</label>
+            <input type="checkbox" id="vegetarian" name="vegetarian">
+            <br>
+
+            <label for="vegan">Vegan</label>
+            <input type="checkbox" id="vegan" name="vegan">
+            <br>
+
+            <label for="difficulty">Difficulty:</label>
+            <input type="radio" id="easy" name="difficulty" value="easy">
+            <label for="easy">Easy</label>
+            <input type="radio" id="medium" name="difficulty" value="medium">
+            <label for="medium">Medium</label>
+            <input type="radio" id="hard" name="difficulty" value="hard">
+            <label for="hard">Hard</label>
+            <br>
+
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+
+</body>
+</html>

@@ -68,8 +68,8 @@
 #define TCP_WND                     (16 * TCP_MSS) // was 8
 #define TCP_MSS                     1460
 #define TCP_SND_BUF                 (16 * TCP_MSS) // need to look at this - normally same as TCP_WND
-#define TCP_SND_QUEUELEN            ((4 * (TCP_SND_BUF) + (TCP_MSS - 1)) / (TCP_MSS))
-
+//#define TCP_SND_QUEUELEN            ((4 * (TCP_SND_BUF) + (TCP_MSS - 1)) / (TCP_MSS))
+#define TCP_SND_QUEUELEN            64 // max is 256
 // These are defaults
 #define MEM_ALIGNMENT               4
 #define MEMP_NUM_ARP_QUEUE          10

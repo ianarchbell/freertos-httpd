@@ -112,6 +112,7 @@ int fs_open_custom(struct fs_file *file, const char *name){
         file->flags |= FS_FILE_FLAGS_ROUTE; // not used in fs.c
         
         Extension* pext = pvPortMalloc(sizeof(Extension));
+        assert(pext != NULL);
         if(file->pextension != NULL)
             panic("File extension should be null\n");  
 

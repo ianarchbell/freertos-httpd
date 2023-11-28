@@ -121,8 +121,8 @@
 #define configUSE_CORE_AFFINITY                 1
 #endif
 
-/* RP2040 specific */
-#define configSUPPORT_PICO_SYNC_INTEROP         1
+/* RP2040 specific */ 
+#define configSUPPORT_PICO_SYNC_INTEROP         1 
 #define configSUPPORT_PICO_TIME_INTEROP         1
 
 #include <assert.h>

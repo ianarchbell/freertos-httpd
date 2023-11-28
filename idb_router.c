@@ -149,8 +149,8 @@ void setLED(NameFunction* ptr, char* buffer, int count, const char* uri){
  * 
 */
 float getAnalogOut(NameFunction* ptr, char* buffer, int count, char* analogPort){
-    TRACE_PRINTF("Port value: %d, float value: %.5f\n", analogPort);
     float analogValue = getStateItemFloat(analogPort);
+    TRACE_PRINTF("Port value: %s, float value: %.5f\n", analogPort, analogValue);
     return analogValue;
 }
 
@@ -370,7 +370,7 @@ void returnGPIOs(NameFunction* ptr, char* buffer, int count){
     memset(buf+offset-2, '}', 1);
     memset(buf+offset-1, '\0', 1);
 
-    TRACE_PRINTF("GPIO array: %s", buf);
+    TRACE_PRINTF("GPIO array: %s\n", buf);
     
     printJSONHeaders(buffer, count, offset-1);
 

@@ -683,14 +683,15 @@
     }
   </script>
   <script>
+    var ws;
     function setMsg(cls, text) {
 				console.log(cls + ':' + text);
-			}
-    var ws;
+		}
     var retries;
     window.onload = function() {
       wsOpen();
     }
+    setInterval(wsOpenStream, 30000);
     function onMessage(evt) {
       console.log(evt);
       retries = 0;
@@ -712,7 +713,7 @@
         ws = new WebSocket("ws://" + location.host);
         ws.binaryType = 'arraybuffer';
         ws.onopen = function(evt) { retries = 0; setMsg("done", "WebSocket is open."); };
-        ws.onerror = function(evt) { setMsg("error", "WebSocket error!"); };
+        ws.onerror = function(evt) { wsOpenStream() }; // reopen on error
         ws.onmessage = function(evt) { onMessage(evt); };
         ws.onclose = function(evt) { wsOpenStream() }; // reopen on close
         wsOpenStream();
@@ -724,21 +725,22 @@
       element.textContent = value;
     }
     function wsOpenStream() {
-      var uri = "/stream"
-      var ws = new WebSocket("ws://" + location.host + uri);
-      ws.onmessage = function(evt) {
-        console.log(evt.data);
-        var state = JSON.parse(evt.data);
-        console.log(state);
-        if(state.descriptor){
-          element = document.getElementById(state.descriptor);
-          if (state.descriptor[0] == 'D')
-            toggleSwitch(element);
-          else
-            setAnalogValue(element, state.val.float_value);
+      if (ws === undefined || ws.readyState === undefined || ws.readyState == 2 && ws.readyState == 3){
+        var uri = "/stream"
+        var ws = new WebSocket("ws://" + location.host + uri);
+        ws.onmessage = function(evt) {
+          console.log(evt.data);
+          var state = JSON.parse(evt.data);
+          console.log(state);
+          if(state.descriptor){
+            element = document.getElementById(state.descriptor);
+            if (state.descriptor[0] == 'D')
+              toggleSwitch(element);
+            else
+              setAnalogValue(element, state.val.float_value);
+          }
         }
-
-      };
+      }
     }
     function wsWrite(data) {
       if (ws.readyState == 3 || retries++ > 5)
