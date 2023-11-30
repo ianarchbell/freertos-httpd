@@ -565,80 +565,81 @@
         };
         setInterval(getTemperature, 15000);
     };
-/*    function getADC1() {
-        fetch('http://192.168.50.212/adc/1')
+    function getADC1() {
+        fetch('http://192.168.50.212/adc/AI01')
             .then(res => res.json())
             .then(json => {
                 console.log(json);
                 var gauge = document.gauges.get('gauge2');
-                gauge.value = json["1"]; 
+                gauge.value = json.AI01; 
         }).catch(err => console.error(err));
     };
     function getADC3() {
-        fetch('http://192.168.50.212/adc/2')
+        fetch('http://192.168.50.212/adc/AI02')
             .then(res => res.json())
             .then(json => {
                 console.log(json);
                 var gauge = document.gauges.get('gauge3');
-                gauge.value = json["2"]; 
+                gauge.value = json.AI02; 
         }).catch(err => console.error(err));
     };
     function getADC4() {
-        fetch('http://192.168.50.212/adc/3')
+        fetch('http://192.168.50.212/adc/AI03')
             .then(res => res.json())
             .then(json => {
                 console.log(json);
                 var gauge = document.gauges.get('gauge4');
-                gauge.value = json["3"]; 
+                gauge.value = json.AI03; 
         }).catch(err => console.error(err));
-    }; */
+    }; 
 
     function setTimeIntervalADCs() {
       const getADC1 = () => {
-      fetch('http://192.168.50.212/adc/AO01')
+      fetch('http://192.168.50.212/adc/AI01')
               .then(res => res.json())
               .then(json => {
                   console.log(json);
                   var gauge = document.gauges.get('gauge2');
-                  gauge.value = json[1]; 
+                  gauge.value = json.AI01; 
           }).catch(err => console.error(err));
       };
       setInterval(getADC1, 10000);
       const getADC2 = () => {
-      fetch('http://192.168.50.212/adc/AO02')
+      fetch('http://192.168.50.212/adc/AI02')
               .then(res => res.json())
               .then(json => {
                   console.log(json);
                   var gauge = document.gauges.get('gauge3');
-                  gauge.value = json[2]; 
+                  gauge.value = json.AI02; 
           }).catch(err => console.error(err));
       };
       setInterval(getADC2, 10000);
       const getADC3 = () => {
-      fetch('http://192.168.50.212/adc/AO03')
+      fetch('http://192.168.50.212/adc/AI03')
               .then(res => res.json())
               .then(json => {
                   console.log(json);
                   var gauge = document.gauges.get('gauge4');
-                  gauge.value = json[3]; 
+                  gauge.value = json.AI03; 
           }).catch(err => console.error(err));
       };
       setInterval(getADC3, 10000);
     };
 
-    function reflectLEDstate(){
-        var checkbox = document.getElementById('DO1');
-        fetch('http://192.168.50.212/led')
-            .then(res => res.json())
-            .then(json => {
-                console.log(json);
-                console.log(json.led);
-                setStatus('LED', json.led); // TODO have an element for the LED and a way to set it
-        }).catch(err => console.error(err));
-    };
+    // function reflectLEDstate(){
+    //     var checkbox = document.getElementById('DO1');
+    //     fetch('http://192.168.50.212/led')
+    //         .then(res => res.json())
+    //         .then(json => {
+    //             console.log(json);
+    //             console.log(json.led);
+    //             setStatus('LED', json.led); // TODO have an element for the LED and a way to set it
+    //     }).catch(err => console.error(err));
+    // };
     function setState(element){
       console.log(element);
         var state = Number(isActive(element));
+        console.log("Setting state for " + element.id);
         fetch('http://192.168.50.212/gpio', {
             method: 'POST',
             headers: {
@@ -672,10 +673,10 @@
     function onBodyLoad(){
         //drawGauge();
         setTimeIntervalGauge();
-        //setTimeIntervalADCs();
+        setTimeIntervalADCs();
         //setTimeIntervalHistory();
         getTemperature();
-        reflectLEDstate();
+        //reflectLEDstate();
         reflectGPIOstate();
         //resize();
         //drawChart();

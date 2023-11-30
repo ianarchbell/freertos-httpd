@@ -62,6 +62,7 @@
  * Task configuration
 */
 #define MAIN_TASK_PRIORITY      5
+#define MAIN_TASK_STACK_SIZE 8096
 #define CHECKUP IDB_CHECKUP
 #define CHECKUP_INTERVAL_MS IDB_CHECKUP_INTERVAL * 1000 // once a minute ish
 #define STATS IDB_STATS
@@ -83,7 +84,8 @@ bool runCheck = false;
 volatile TimerHandle_t checkup_timer;
 static TaskHandle_t th;
 
-extern testRoutes();
+//extern void testRoutes();
+//extern void testaRoute();
 
 /**
  * 
@@ -269,7 +271,7 @@ void main_task(__unused void *params) {
 */
 void vLaunch( void) {
     TaskHandle_t task;
-    xTaskCreate(main_task, "MainThread", 8192, NULL, MAIN_TASK_PRIORITY, &task);
+    xTaskCreate(main_task, "MainThread", MAIN_TASK_STACK_SIZE, NULL, MAIN_TASK_PRIORITY, &task);
 
 #if NO_SYS && configUSE_CORE_AFFINITY && configNUM_CORES > 1
     // we must bind the main task to one core (well at least while the init is called)
@@ -312,7 +314,9 @@ int main( void )
 {
     stdio_init_all();
 
-    testRoutes(); 
+    //testRoutes(); 
+
+    //testaRoute();
 
     //sleep_ms (2000); // only need this when not using probe
     /* Configure the hardware ready to run the demo. */

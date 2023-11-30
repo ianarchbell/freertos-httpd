@@ -22,14 +22,16 @@ const char inifile[] = "/sd0/idb.ini";
 
 stateItem states[15] = {
 
-{"AO01\0", STATE_ANALOG_OUTPUT, AO01, 0}, 
-{"AO02\0", STATE_ANALOG_OUTPUT, AO02, 1},
-{"AO03\0", STATE_ANALOG_OUTPUT, AO03, 2},
+// descriptor, type, pin, ADC    
+
+{"AO01\0", STATE_ANALOG_OUTPUT, AO01, -1}, 
+{"AO02\0", STATE_ANALOG_OUTPUT, AO02, -1},
+{"AO03\0", STATE_ANALOG_OUTPUT, AO03, -1},
 
 // used in configuration but state not saved - always real time
-{"AI01\0", STATE_ANALOG_INPUT, AI01, -1},
-{"AI02\0", STATE_ANALOG_INPUT, AI02, -1},
-{"AI03\0", STATE_ANALOG_INPUT, AI03, -1},
+{"AI01\0", STATE_ANALOG_INPUT, AI01, 0},
+{"AI02\0", STATE_ANALOG_INPUT, AI02, 1},
+{"AI03\0", STATE_ANALOG_INPUT, AI03, 2},
 
 {"DO01\0", STATE_DIGITAL_OUTPUT, DO01, -1},
 {"DO02\0", STATE_DIGITAL_OUTPUT, DO02, -1},

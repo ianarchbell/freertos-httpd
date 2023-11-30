@@ -50,20 +50,21 @@ endif()
 add_executable(idb
         idb_main.c fs_ext.c hw_config.c idb_router.c idb_ntp_client.c idb_data_logger.c
                 idb_hardware.c idb_post.c idb_network.c idb_websocket.c idb_http.c 
-                idb_state.c idb_runtime_stats.c idb_ping.c router.cpp testRoutes.cpp
+                idb_state.c idb_runtime_stats.c idb_ping.c # router.cpp  testRoutes.cpp 
                 #idb_http_client.c 
                 #${PICO_LWIP_CONTRIB_PATH}/apps/ping/ping.c
                 ${PICO_LWIP_APP_PATH}/http/strcasestr.c
                 ${CMAKE_CURRENT_LIST_DIR}/tiny-json/tiny-json.c
+              #  ${CMAKE_CURRENT_LIST_DIR}/tiny-regex-c/re.c
                 ${MININI_PATH}/dev/minini.c
-        )
-        
+        )    
 target_compile_definitions(idb PRIVATE
         WIFI_SSID=\"$ENV{WIFI_SSID}\"
         WIFI_PASSWORD=\"$ENV{WIFI_PASSWORD}\"
         NO_SYS=0            # don't want NO_SYS (generally this would be in your lwipopts.h)
         LWIP_SOCKET=1       # we need the socket API (generally this would be in your lwipopts.h)
         PING_USE_SOCKETS=1
+        PICO_CXX_DISABLE_ALLOCATION_OVERRIDES=1
         )
 target_include_directories(idb PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}

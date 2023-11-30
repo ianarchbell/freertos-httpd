@@ -9,7 +9,7 @@ typedef struct NameFunction_struct
     const char* routeName;
     void (*routeFunction)(void*, char*, int, char*);
     int routeType;
-    char* uri;
+    int keyCount;
 } NameFunction;
 
 /* Choose 'C' for Celsius or 'F' for Fahrenheit. */

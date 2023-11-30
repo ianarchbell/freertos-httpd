@@ -7,6 +7,8 @@
 #include "idb_http.h"
 #include "idb_network.h"
 
+#define HTTPD_TASK_SIZE 4000
+
 /**
  * 
  * HTTP task that registers websocket callbacks and initializes the HTTP Daemon
@@ -27,7 +29,7 @@ void httpd_task(void *pvParameters)
  * 
  */
 void http_init(){
-    xTaskCreate(&httpd_task, "HTTP Daemon", 4000, NULL, 3, NULL);
+    xTaskCreate(&httpd_task, "HTTP Daemon", HTTPD_TASK_SIZE, NULL, 3, NULL);
 }
 
 /* TO DO this should be called if http_task ends - not normal behavior */

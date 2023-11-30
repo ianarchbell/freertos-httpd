@@ -13,6 +13,8 @@
 
 #define KEEPALIVE_EVENT 0x02
 
+#define WEBSOCKET_TASK_SIZE 256
+
 bool bKeepaliveTimer = false;
 
 /* Queue used to send and receive complete struct AMessage structures. */
@@ -201,7 +203,7 @@ void websocket_open_cb(struct tcp_pcb *pcb, const char *uri)
     TRACE_PRINTF("WS URI: %s\n", uri);
     if (!strcmp(uri, "/stream")) {
         TRACE_PRINTF("Websocket request for streaming\n");
-        xTaskCreate(&websocket_task, "websocket_task", 256, (void *) pcb, 5, NULL);
+        xTaskCreate(&websocket_task, "websocket_task", WEBSOCKET_TASK_SIZE, (void *) pcb, 5, NULL);
     }
 }
 

@@ -1,22 +1,67 @@
 #include "router.h"
 
+#include "FreeRTOS.h"
+
+void * operator new( size_t size )
+{
+    return pvPortMalloc( size );
+}
+
+void * operator new[]( size_t size )
+{
+    return pvPortMalloc(size);
+}
+
+void operator delete( void * ptr )
+{
+    vPortFree ( ptr );
+}
+
+void operator delete[]( void * ptr )
+{
+    vPortFree ( ptr );
+}
+
 namespace route {
 
-  Match Route::set(const std::string& u) {
+Route theRoute;  
+auto match = theRoute.set("/");
+
+extern "C" void setRoute(const char* u){
+  theRoute.set(u);
+} 
+
+extern "C" int testRoute(const char* route){
+  int r = match.test(route);
+  return r;
+}
+
+extern "C" int getKeyCount(const char* route){
+  match.test(route);
+  return match.keys;
+}
+
+extern "C" void getKeyValue(char* keyValue, const char* key, const char* defaultValue){
+  std::string s;
+  s = match.get(key).value_or("<none>");
+  strcpy(keyValue, s.c_str());
+}
+
+Match Route::set(const std::string& u) {
     url = u;
     path_to_regex = std::regex(path_pattern);
     Match m(*this);
     return m;
-  }
+}
 
-  std::optional<std::string> Match::get(const std::string& key) {
+std::optional<std::string> Match::get(const std::string& key){
     if (pairs.count(key)) {
       return pairs.at(key);
     }
     return std::nullopt;
   }
 
-  bool Match::test(const std::string& tmpl) {
+bool Match::test(const std::string& tmpl) {
 
     pairs.clear();
     Path path;

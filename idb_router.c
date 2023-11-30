@@ -20,6 +20,8 @@
 
 #include "tiny-json.h"
 
+//#include "tiny-regex-c/re.h"
+
 #define DEVICENAME "sd0"
 #define MOUNTPOINT "/sd0"
 
@@ -243,13 +245,13 @@ void adc(NameFunction* ptr, char* buffer, int count, const char* uri){
         char buff[64];
         char descriptor[64];
         if(getFirstToken(descriptor, uri)){   
-            int16_t adc_value = readADC(descriptor);
+            float adc_value = readADC(descriptor);
             //float adc_value = readADCraw(adc);
 
             // Output JSON very simply
-            TRACE_PRINTF("Returning ADC status channel: %d, value: %d\n", adc, adc_value);
+            TRACE_PRINTF("Returning ADC status channel: %s, value: %.03f\n", descriptor, adc_value);
             //TRACE_PRINTF("Returning ADC status channel: %d, value: %0.3f\n", adc, adc_value);
-            int len = snprintf(buff, sizeof buff, "{\"%d\" : %d}", adc, adc_value);
+            int len = snprintf(buff, sizeof buff, "{\"%s\" : %.3f}", descriptor, adc_value);
             //int len = snprintf(buff, sizeof buff, "{\"%d\" : %03f}", adc, adc_value);
             printJSONHeaders(buffer, count, len);
 
@@ -756,21 +758,21 @@ void failure(NameFunction* ptr, char* buffer, int count, char* uri){
 */
 NameFunction routes[] =
 { 
-    { "/temp", (void*) *returnTemperature, HTTP_GET, NULL },
-    { "/temperature", (void*) *returnTemperature, HTTP_GET, NULL },
-    { "/led", (void*) *returnLED, HTTP_GET, NULL }, 
-    { "/led/:value", (void*) *setLED, HTTP_POST, NULL }, 
-    { "/adc/:adc", (void*) *adc, HTTP_GET, NULL },  
-    { "/gpio/:gpio", (void*) *gpio, HTTP_GET, NULL },  
-    { "/analogout/:port", (void*) *analogOutValue, HTTP_GET, NULL },
-    { "/analogout/:port/:value", (void*) *analogOut, HTTP_POST, NULL },
-    { "/gpio/:gpio/:value", (void*) *gpio, HTTP_POST, NULL },
-    { "/gpioarray", (void*) *returnGPIOs, HTTP_GET, NULL },  
-    { "/gpiofixedarray/:values", (void*) *gpioArray, HTTP_POST, NULL }, 
-    { "/gpioarray/:values", (void*) *gpioJSONArray, HTTP_POST, NULL }, 
-    { "/readlog/:date", (void*) *readLogWithDate, HTTP_GET, NULL },
-    { "/failure", (void*) *failure, HTTP_GET || HTTP_POST, NULL},
-    { "/success", (void*) *success, HTTP_GET || HTTP_POST, NULL},
+    { "/temp", (void*) *returnTemperature, HTTP_GET,0 },
+    { "/temperature", (void*) *returnTemperature, HTTP_GET, 0 },
+    { "/led", (void*) *returnLED, HTTP_GET, 0 }, 
+    { "/led/:value", (void*) *setLED, HTTP_POST, 1 }, 
+    { "/adc/:adc", (void*) *adc, HTTP_GET, 1 },  
+    { "/gpio/:gpio", (void*) *gpio, HTTP_GET, 1 },  
+    { "/analogout/:port", (void*) *analogOutValue, HTTP_GET, 1 },
+    { "/analogout/:port/:value", (void*) *analogOut, HTTP_POST, 2 },
+    { "/gpio/:gpio/:value", (void*) *gpio, HTTP_POST, 2 },
+    { "/gpioarray", (void*) *returnGPIOs, HTTP_GET, 0 },  
+    { "/gpiofixedarray/:values", (void*) *gpioArray, HTTP_POST, 1 }, 
+    { "/gpioarray/:values", (void*) *gpioJSONArray, HTTP_POST, 1 }, 
+    { "/readlog/:date", (void*) *readLogWithDate, HTTP_GET, 1 },
+    { "/failure", (void*) *failure, HTTP_GET || HTTP_POST, 0},
+    { "/success", (void*) *success, HTTP_GET || HTTP_POST, 0},
 };
 
 /**
@@ -825,6 +827,151 @@ NameFunction* parsePartialMatch(const char* name, int routeType){
     return 0;
 }
 
+
+// extern void setRoute(const char* route);
+// extern int testRoute(const char* route);
+// extern int getKeyCount(const char* route);
+// extern void getKeyValue(char* keyValue, const char* key, char* defaultValue);
+
+// NameFunction* isRouteNew(const char* uri, int routeType){
+//     printf("URI: %s\n", uri);
+//     re_t path_pattern1 = re_compile("/^(?:/[a-z]*\b)(?:/[a-zA-Z0-9_]+){1}$");
+//     re_t path_pattern2 = re_compile("/^(?:/[a-z]*\b)(?:/[a-zA-Z0-9_]+){2}$");
+//     int match_length;
+//     setRoute(uri);
+//     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
+//     {
+//         if (!strcmp(ptr->routeName, uri)){
+//              printf("Route exact match %s", uri);
+//             return ptr; // exact match
+//         }
+//         if (!(routeType & ptr->routeType)) 
+//             continue;  // not the right http type for this route
+//         if (ptr->keyCount > 2)
+//             return NULL; // can't handle more than two keys
+        
+//         re_t path_pattern;
+//         if(ptr->keyCount == 1)            
+//             path_pattern = path_pattern1;
+//         else if(ptr->keyCount == 2)
+//             path_pattern = path_pattern2; 
+                   
+//         int match_idx = re_matchp(path_pattern1, uri, &match_length);
+//         printf("Matching route: %s. Result of regex match: %d, length: %d\n", uri, match_idx, match_length);     
+//         //int r = testRoute(ptr->routeName); 
+//         if (match_idx != -1){
+//             printf("Route match %s", uri);
+//             // if (ptr->keyCount > 0){
+//             //     r = getKeyCount(ptr->routeName);
+//             //     if(r == ptr->keyCount){
+//             //         printf("Is route with keys - URI: %s\n", uri);
+//             //         return ptr;
+//             //     }
+//             //     else{
+//             //         printf("No route - URI: %s\n", uri);
+//             //         return NULL;
+//             //     }
+//             // }
+//             // else{
+//             //     printf("Is route without keys - URI: %s\n", uri);
+//             //     return ptr;
+//             // }  
+//             return ptr;
+//         }        
+//     }
+//     printf("No route - URI: %s\n", uri);
+//     return NULL;
+// }
+
+// // NameFunction* isRouteNew(const char* uri, int routeType){
+// //     printf("URI: %s\n", uri);
+  
+// //     setRoute(uri);
+// //     for (NameFunction* ptr = routes;ptr != routes + sizeof(routes) / sizeof(routes[0]); ptr++)
+// //     {
+// //         if (!(routeType & ptr->routeType)) 
+// //             continue;    
+// //         int r = testRoute(ptr->routeName); 
+// //         if (r == 1){
+// //             if (ptr->keyCount > 0){
+// //                 r = getKeyCount(ptr->routeName);
+// //                 if(r == ptr->keyCount){
+// //                     printf("Is route with keys - URI: %s\n", uri);
+// //                     return ptr;
+// //                 }
+// //                 else{
+// //                     printf("No route - URI: %s\n", uri);
+// //                     return NULL;
+// //                 }
+// //             }
+// //             else{
+// //                 printf("Is route without keys - URI: %s\n", uri);
+// //                 return ptr;
+// //             }  
+// //         }        
+// //     }
+// //     printf("No route - URI: %s\n", uri);
+// //     return NULL;
+// // }
+
+// // NameFunction* isRouteNew(const char* name, int routeType){
+// //     NameFunction* ptr = parseExact(name, routeType);
+// //     if (!ptr){ // always return an exact match if found otherwise look for partial
+// //         ptr = parsePartialMatchNew(name, routeType);
+// //     }  
+// //     return ptr;  
+// // }
+
+
+// void testThisRoute(const char* uri, int routeType){
+//     const NameFunction* ptr = isRouteNew(uri, routeType);
+//     if (ptr != NULL)
+//         printf("uri: %s is a route of type: %d\n", uri, routeType);
+//     else
+//         printf("uri: %s is not a route of type: %d\n", uri, routeType);    
+
+// }
+
+// void testIsRoute(){
+//     testThisRoute("/temp", HTTP_GET);
+//     testThisRoute("/tem", HTTP_GET);
+//     testThisRoute("/tempe", HTTP_GET);
+//     testThisRoute("/temperature", HTTP_GET);
+//     testThisRoute("/tempera", HTTP_GET);
+//     testThisRoute("/temperature", HTTP_POST);
+//     testThisRoute("/led", HTTP_GET);
+//     testThisRoute("/led", HTTP_POST);
+//     testThisRoute("/led/1", HTTP_POST);
+//     testThisRoute("/led/0", HTTP_POST);
+//     testThisRoute("/led/0/1", HTTP_POST);
+//     testThisRoute("/led/0", HTTP_GET);
+//     testThisRoute("/gpio/18/1", HTTP_GET);
+//     testThisRoute("/gpio/18/0", HTTP_GET);
+//     testThisRoute("/gpio/18/1", HTTP_POST);
+//     testThisRoute("/gpio/18/0", HTTP_POST);
+//     testThisRoute("/index.shtml", HTTP_GET);
+//     testThisRoute("/index.ssi", HTTP_GET);
+// }
+
+// void testaRoute(){
+//     //setRoute("/foo/666/bazz");
+//     setRoute("/foo/bazz/666");
+//     int r = testRoute("/short");
+//     printf("/short = %d\n", r);
+//     //r = testRoute("/foo/666/bazz");
+//     r = testRoute("/foo/bazz/666");
+//     //printf("/foo/666/bazz = %d\n", r);
+//     printf("/foo/bazz/666 = %d\n", r);
+//     r = getKeyCount("/foo/:num/:str");
+//     printf("/foo/:num/:str = %d\n", r);
+//     char s[16];
+//     getKeyValue(s, "num", "<none>");
+//     printf(":num = %s\n", s);
+//     getKeyValue(s, "str", "<none>");
+//     printf(":str = %s\n", s);
+//     testIsRoute();
+// }
+
 /**
  * 
  * Checks for both an exact or partial match on a route name
@@ -836,12 +983,9 @@ NameFunction* isRoute(const char* name, int routeType){
     NameFunction* ptr = parseExact(name, routeType);
     if (!ptr){ // always return an exact match if found otherwise look for partial
         ptr = parsePartialMatch(name, routeType);
-    }
-    // if (ptr)
-    //     TRACE_PRINTF("In route table\n");
-    // else
-    //     TRACE_PRINTF("Not in route table\n");    
+    } 
     return ptr;  
+    //return isRouteNew(name, routeType);
 }
 
 /**
@@ -857,8 +1001,6 @@ void route(NameFunction* ptr, char* buffer, int count, char* uri){
         
         if (uri){
             TRACE_PRINTF("routed uri: %s\n", uri);
-            // vPortFree(ptr->uri); // no need to free it is up to the caller
-            // ptr->uri = NULL;
         }
         else{
             panic("no uri isRoute must be called prior to route\n");
@@ -867,7 +1009,6 @@ void route(NameFunction* ptr, char* buffer, int count, char* uri){
     else{
         TRACE_PRINTF("no buffer, can't route\n");
     }
-    //TRACE_PRINTF("returned from route\n");
 }
 
 

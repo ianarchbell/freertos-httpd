@@ -24,7 +24,6 @@ extern "C" void testRoutes() {
   int r;
   std::string s;
 
-
   match = route.set("/short");
   r = match.test("/short");
   ASSERT("exact match", r == true);
