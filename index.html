@@ -260,22 +260,22 @@
     <div class="gauge-panel">
     <div class="gauge-container">
       <canvas id="gauge1"></canvas>
-      <div class="gauge-label">ADC1</div>
+      <div class="gauge-label">Core Temperature</div>
     </div>
 
     <div class="gauge-container">
       <canvas id="gauge2"></canvas>
-      <div class="gauge-label">ADC2</div>
+      <div class="gauge-label">Analog 1</div>
     </div>
 
     <div class="gauge-container">
       <canvas id="gauge3"></canvas>
-      <div class="gauge-label">ADC3</div>
+      <div class="gauge-label">Analog 2</div>
     </div>
 
     <div class="gauge-container">
       <canvas id="gauge4"></canvas>
-      <div class="gauge-label">ADC4</div>
+      <div class="gauge-label">Analog 3</div>
     </div>
 
     </div>
@@ -490,11 +490,15 @@
         renderTo: 'gauge1',
         width: 200,
         height: 200,
-        units: "Units",
+        units: "F",
         title: "Gauge 1",
         value: 0,
         minValue: 0,
-        maxValue: 100
+        maxValue: 100,
+        highlights: [
+        { from: 0, to: 90, color: 'rgba(128,128,128,0.05)' },
+        { from: 90, to: 100, color: 'rgba(128,128,128,0.75)' },
+        ],
       }).draw();
 
       // Create the second gauge
@@ -502,11 +506,17 @@
         renderTo: 'gauge2',
         width: 200,
         height: 200,
-        units: "Units",
-        title: "Gauge 2",
+        units: "V",
+        title: "Analog 1",
         value: 0,
         minValue: 0,
-        maxValue: 100
+        maxValue: 4,
+        highlights: [
+        { from: 0, to: 3.3, color: 'rgba(128,128,128,0.05)' },
+        { from: 3.3, to: 4, color: 'rgba(128,128,128,0.75)' },
+        ],
+        majorTicks: [0,1,2,3,4],
+        minorTicks: 10
       }).draw();
 
       // Create the third gauge
@@ -514,11 +524,17 @@
         renderTo: 'gauge3',
         width: 200,
         height: 200,
-        units: "Units",
-        title: "Gauge 3",
+        units: "V",
+        title: "Analog 2",
         value: 0,
         minValue: 0,
-        maxValue: 100
+        maxValue: 4,
+        highlights: [
+        { from: 0, to: 3.3, color: 'rgba(128,128,128,0.05)' },
+        { from: 3.3, to: 4, color: 'rgba(128,128,128,0.75)' },
+        ],
+        majorTicks: [0,1,2,3,4],
+        minorTicks: 10
       }).draw();
 
       // Create the fourth gauge
@@ -526,11 +542,17 @@
         renderTo: 'gauge4',
         width: 200,
         height: 200,
-        units: "Units",
-        title: "Gauge 4",
+        units: "V",
+        title: "Analog 3",
         value: 0,
         minValue: 0,
-        maxValue: 100
+        maxValue: 4,
+        highlights: [
+        { from: 0, to: 3.3, color: 'rgba(128,128,128,0.05)' },
+        { from: 3.3, to: 4, color: 'rgba(128,128,128,0.75)' },
+        ],
+        majorTicks: [0,1,2,3,4],
+        minorTicks: 10
       }).draw();
       onBodyLoad();
     });
@@ -571,7 +593,7 @@
             .then(json => {
                 console.log(json);
                 var gauge = document.gauges.get('gauge2');
-                gauge.value = json.AI01; 
+                gauge.value = 3.3 * json.AI01/4095; 
         }).catch(err => console.error(err));
     };
     function getADC3() {
@@ -580,7 +602,7 @@
             .then(json => {
                 console.log(json);
                 var gauge = document.gauges.get('gauge3');
-                gauge.value = json.AI02; 
+                gauge.value = 3.3 * json.AI02/4095; 
         }).catch(err => console.error(err));
     };
     function getADC4() {
@@ -589,7 +611,7 @@
             .then(json => {
                 console.log(json);
                 var gauge = document.gauges.get('gauge4');
-                gauge.value = json.AI03; 
+                gauge.value = 3.3 * json.AI03/4095;  
         }).catch(err => console.error(err));
     }; 
 
@@ -600,7 +622,7 @@
               .then(json => {
                   console.log(json);
                   var gauge = document.gauges.get('gauge2');
-                  gauge.value = json.AI01; 
+                  gauge.value = 3.3 * json.AI01/4095;  
           }).catch(err => console.error(err));
       };
       setInterval(getADC1, 10000);
@@ -610,7 +632,7 @@
               .then(json => {
                   console.log(json);
                   var gauge = document.gauges.get('gauge3');
-                  gauge.value = json.AI02; 
+                  gauge.value = 3.3 * json.AI02/4095;  
           }).catch(err => console.error(err));
       };
       setInterval(getADC2, 10000);
@@ -620,7 +642,7 @@
               .then(json => {
                   console.log(json);
                   var gauge = document.gauges.get('gauge4');
-                  gauge.value = json.AI03; 
+                  gauge.value = 3.3 * json.AI03/4095; 
           }).catch(err => console.error(err));
       };
       setInterval(getADC3, 10000);

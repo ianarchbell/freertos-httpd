@@ -9,6 +9,10 @@
 #include "idb_state.h"
 #include "idb_hardware.h"
 
+// 100K f wit 1uF/1K low pass filter to 
+// smooth PWM for analog ~.01V accuracy
+#define PWM_FREQUENCY 100000
+
 float getCoreTemperature(char units){
 
 // The temperature sensor is on input 4:
@@ -109,7 +113,7 @@ void analogOutput(char* descriptor, float value){
     // get the channel
     uint channel = pwm_gpio_to_channel (gpio);
     // set the frequency and duty cycle
-    uint32_t wrap = pwm_set_freq_duty(slice_num, channel, 1176, duty_cycle);
+    uint32_t wrap = pwm_set_freq_duty(slice_num, channel, PWM_FREQUENCY, duty_cycle);
     // start the PWM
     pwm_set_enabled (slice_num, true); 	
     TRACE_PRINTF("Wrap: %d, duty cycle: %03f\n", wrap, duty_cycle);
