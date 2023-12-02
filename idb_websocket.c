@@ -15,8 +15,6 @@
 
 #define WEBSOCKET_TASK_SIZE 256
 
-bool bKeepaliveTimer = false;
-
 /* Queue used to send and receive complete struct AMessage structures. */
 QueueHandle_t xStructQueue = NULL;
 
@@ -95,27 +93,35 @@ void keepalive(TimerHandle_t xTimer){
     }
 }
 
-void create_keepalive_timer() {
-    // Create a repeating (parameter 3) timer
-    TimerHandle_t keepalive_timer = xTimerCreate("KEEPALIVE TIMER",
-                                pdMS_TO_TICKS(WS_KEEPALIVE_INTERVAL_MS),
-                                pdTRUE,
-                                (void*) 0,
-                                keepalive
-                                );
+void create_keepalive_timer(bool start) {
     
-    // Start the repeating timer
-    if (keepalive_timer != NULL){
-        xTimerStart(keepalive_timer, 0);
-        bKeepaliveTimer = true;
-    } 
+    static TimerHandle_t keepalive_timer = NULL;
+    
+    if (start && !keepalive_timer ){
+        // Create a repeating (parameter 3) timer
+        keepalive_timer = xTimerCreate("KEEPALIVE TIMER",
+                                    pdMS_TO_TICKS(WS_KEEPALIVE_INTERVAL_MS),
+                                    pdTRUE,
+                                    (void*) 0,
+                                    keepalive
+                                    );
+        
+        // Start the repeating timer
+        if (keepalive_timer != NULL){
+            xTimerStart(keepalive_timer, 0);
+        } 
+    }
+    else{
+        if (keepalive_timer != NULL){
+            xTimerStop(keepalive_timer, 0);
+            keepalive_timer = NULL;
+        }
+    }
 }
 
 void websocket_task(void *pvParameter)
 {    
-    if (bKeepaliveTimer == false){
-        create_keepalive_timer();  
-    }
+    create_keepalive_timer(true);  
     
     struct tcp_pcb *pcb = (struct tcp_pcb *) pvParameter;
     wsMessage wsMsg;
@@ -150,7 +156,7 @@ void websocket_task(void *pvParameter)
             }
         }
     }
-
+    create_keepalive_timer(false);
     vTaskDelete(NULL);
 }
 
