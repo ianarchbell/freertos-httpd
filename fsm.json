@@ -8,6 +8,7 @@
             "Filling Mash Tun",
             "Mash Tun Full",
             "Mash Tun Heating",
+            "Mash Tun Heated",
             "Mashing",
             "Mash Complete",
             "Wort Kettle Transfer",
@@ -24,24 +25,22 @@
             "Idle"
         ],
         "Idle": {
-            "Entry Transition": {
-                "Start Button": 0
-            },
             "State": {
                 "Start Button" : 0,    
                 "Mash Tun Input Pump": 0,
                 "Mash Tun Ball-Valve": 0,
                 "Mash Tun Transfer Valve-Pump": 0,
-                "Mash Tun Heater": 0,
+                "Mash Tun Heater": 0
             },
-            "Exit Transition": {
-                "Start Button": 1
-            }
+            "Transitions": [{
+                    "Event": {
+                        "Start Button" : 1
+                    },
+                    "State": "Starting"    
+                }
+            ]
         },
-        "Starting": {
-            "Entry Transition": {
-                "Start Button": 1
-            }, 
+        "Starting": { 
             "State": {
                 "Start Button": 1,
                 "Mash Tun Input Pump": 0,
@@ -49,14 +48,15 @@
                 "Mash Tun Transfer Valve-Pump": 0,
                 "Mash Tun Heater": 0
             },
-            "Exit Transition": {
-                "Mash Tun Input Pump": 1
-            } 
+            "Transitions": [{
+                    "Event": {
+                        "Mash Tun Input Pump" : 1
+                    },
+                    "State": "Filling Mash Tun"    
+                }
+            ]
         },
         "Filling Mash Tun": {
-            "Entry Transition": {
-                "Mash Tun Input Pump": 1
-            }, 
             "State": {
                 "Start Button" : 1,    
                 "Mash Tun Input Pump": 1,
@@ -64,14 +64,15 @@
                 "Mash Tun Transfer Valve-Pump": 0,
                 "Mash Tun Heater": 0
             },
-            "Exit Transition": {
-                "Mash Tun Ball Valve": 1
-            } 
+            "Transitions": [{
+                    "Event": {
+                        "Mash Tun Ball Valve" : 1
+                    },
+                    "State": "Mash Tun Full"    
+                }
+            ]
         },
-        "Mash Tun Full": {
-            "Entry Transition": {
-                "Mash Tun Ball-Valve": 1
-            }, 
+        "Mash Tun Full": { 
             "State": {
                 "Start Button" : 1,    
                 "Mash Tun Input Pump": 0,
@@ -79,14 +80,15 @@
                 "Mash Tun Transfer Valve-Pump": 0,
                 "Mash Tun Heater": 0
             },
-            "Exit Transition": {
-                "Mash Tun Heater": 1
-            } 
+            "Transitions": [{
+                    "Event": {
+                        "Mash Tun Heater" : 1
+                    },
+                    "State": "Mash Tun Heating"    
+                }
+            ]
         },
         "Mash Tun Heating": {
-            "Entry Transition": {
-                "Mash Tun Heater": 1
-            }, 
             "State": {
                 "Mash Tun Input Pump": 0,
                 "Mash Tun Ball-Valve": 1,
@@ -94,138 +96,172 @@
                 "Mash Tun Heater": 1,
                 "Mash Tun Temperature (F)": "<:MASH_TEMPERATURE:"
             },
-            "Exit Transition": {
-                "Mash Tun Temperature (F)": ":MASH_TEMPERATURE:"
-            }             
+            "Transitions": [{
+                    "Event": {
+                        "Mash Tun Temperature (F)": ":MASH_TEMPERATURE:"
+                    },
+                    "State": "Mash Tun Heated"    
+                }
+            ]            
         },
-        "Mashing": {
-            "Entry Transition": {
-                "Mash Tun Temperature (F)": ":MASH_TEMPERATURE:"
-            }, 
+        "Mash Tun Heated": {
             "State": {            
                 "Mash Tun Input Pump": 0,
                 "Mash Tun Ball-Valve": 1,
                 "Mash Tun Transfer Valve-Pump": 0,
                 "Mash Tun Heater": 0,
                 "Mash Tun Temperature (F)": ":MASH_TEMPERATURE:",
-                "Mashing Timer": "<:MASH_TIME:"
+                "Mash Timer": ":MASH_TIME:"
             },
-            "Exit Transition": {
-                "Mashing Timer": 0
-            }                
+            "Transitions": [{
+                    "Event": {
+                        "Mash Timer": ":MASH_TIME:"
+                    },
+                    "State": "Mashing"    
+                }
+            ]                     
+        },          
+        "Mashing": {
+            "State": {            
+                "Mash Tun Input Pump": 0,
+                "Mash Tun Ball-Valve": 1,
+                "Mash Tun Transfer Valve-Pump": 0,
+                "Mash Tun Heater": 0,
+                "Mash Tun Temperature (F)": ":MASH_TEMPERATURE:",
+                "Mash Timer": ">0"
+            },
+            "Transitions": [{
+                    "Event": {
+                        "Mash Timer": 0
+                    },
+                    "State": "Mash Complete"    
+                }, {
+                    "Event": {
+                        "Mash Tun Temperature (F)": "<:MASH_TEMPERATURE:"
+                    },
+                    "State": "Mash Tun Heating"    
+                }
+            ]                     
         },  
         "Mash Complete": {
-            "Entry Transition": {
-                "Mashing Timer": 0
-            },
             "State": {  
                 "Mash Tun Input Pump": 0,
                 "Mash Tun Ball-Valve": 1,
                 "Mash Tun Transfer Valve-Pump": 0,
                 "Mash Tun Heater": 0,
                 "Mash Tun Temperature (F)": ":MASH_TEMPERATURE:",
-                "Mashing Timer": 0
             },
-            "Exit Transition": {
-                "Mash Tun Transfer Valve-Pump": 1
-            }
+            "Transitions": [{
+                    "Event": {
+                        "Mashg Timer": 0
+                    },
+                    "State": "Wort Kettle Transfer"    
+                }
+            ] 
         },             
         "Wort Kettle Transfer": {
-            "Entry Transition": {
-                "Mash Tun Transfer Valve-Pump": 1
-            },
             "State": {  
                 "Wort Kettle Ball-Valve": 0,
                 "Mash Tun Transfer Valve-Pump": 1,
                 "Wort Kettle Transfer Valve-Pump": 0,
                 "Sparge Recirculating Pump": 0
             },
-            "Exit Transition": {
-                "Wort Kettle Ball-Valve": 1
-            }
+            "Transitions": [{
+                    "Event": {
+                        "Wort Kettle Ball-Valve": 1
+                    },
+                    "State": "Wort Kettle Transfer Complete"    
+                }
+            ]
         },       
         "Wort Kettle Transfer Complete": {
-            "Entry Transition": {
-                "Wort Kettle Ball-Valve": 1
-            },
             "State": { 
                 "Wort Kettle Ball-Valve": 1,
                 "Wort Kettle Transfer Valve-Pump": 0,
                 "Sparge Recirculating Pump": 0,
-                "Lauter-Sparge Timer Set (min)": ":SPARGE-TIME:"
+                "Sparge Timer": ":SPARGE-TIME:"
             },
-            "Exit Transition": {
-                "Sparge Recirculating Pump": 1
-            }        
+            "Transitions": [{
+                    "Event": {
+                        "Sparge Recirculating Pump": 1
+                    },
+                    "State": "Sparging"    
+                }
+            ]       
         },
         "Sparging": {
-            "Entry Transition": {
-                "Sparge Recirculating Pump": 1
-            }, 
             "State": {   
                 "Wort Kettle Ball-Valve": 0,
                 "Wort Kettle Transfer Valve-Pump": 0,
                 "Sparge Recirculating Pump": 1,
-                "Sparge Timer (min)": ">0"
+                "Sparge Timer": ">0"
             },
-            "Exit Transition": {
-                "Spargeing Timer": 0
-            }          
+            "Transitions": [{
+                    "Event": {
+                        "Sparge Timer": 0
+                    },
+                    "State": "Sparge Complete"    
+                }
+            ]         
         },
         "Sparge Complete": {
-            "Entry Transition": {
-                "Sparge Timer (min)": 0
-            }, 
             "State": {               
                 "Wort Kettle Ball-Valve": 0,
                 "Wort Kettle Transfer Valve-Pump": 0,
                 "Sparge Recirculating Pump": 0,
-                "Lauter-Sparge Timer (min)": 0
+                "Sparge Timer (min)": 0
             },
-            "Exit Transition": {
-                "Wort Kettle Transfer Valve-Pump": 1
-            } 
+            "Transitions": [{
+                    "Event": {
+                        "Wort Kettle Transfer Valve-Pump": 1
+                    },
+                    "State": "Sparge Transfer"    
+                }
+            ] 
         },
         "Sparge Transfer": {
-            "Entry Transition": {
-                "Sparge Transfer Valve-Pump": 1
-            },
             "State": {  
                 "Wort Kettle Ball-Valve": 0,
                 "Mash Tun Transfer Valve-Pump": 1,
                 "Wort Kettle Transfer Valve-Pump": 0,
                 "Sparge Recirculating Pump": 0
             },
-            "Exit Transition": {
-                "Wort Kettle Ball-Valve": 1
-            }
+            "Transitions": [{
+                    "Event": {
+                        "Wort Kettle Ball-Valve": 1
+                    },
+                    "State": "Sparge Transfer Complete"    
+                }
+            ] 
         },       
         "Sparge Transfer Complete": {
-            "Entry Transition": {
-                "Wort Kettle Ball-Valve": 1
-            },
             "State": { 
                 "Wort Kettle Ball-Valve": 1,
                 "Wort Kettle Transfer Valve-Pump": 0,
                 "Wort Kettle Heater": 0,
-                "Boiling Time Set": ":BOIL_TIME:"
+                "Boil Timer": ":BOIL_TIME:"
             },
-            "Exit Transition": {
-                "Wort Kettle Heater": 1
-            }        
+            "Transitions": [{
+                    "Event": {
+                        "Wort Kettle Heater": 1
+                    },
+                    "State": "Wort Kettle Heating" 
+                }   
+            ]     
         },
         "Wort Kettle Heating": {
-            "Entry Transition": {
-                "Wort Kettle Ball-Valve": 1
-            },
             "State": { 
                 "Wort Kettle Ball-Valve": 1,
                 "Wort Kettle Transfer Valve-Pump": 0,
                 "Wort Kettle Heater": 1
             },
-            "Exit Transition": {
-                "Wort Kettle Temperature (F)": ":BOIL_TEMPERATURE:"
-            }        
+            "Transitions": [{
+                    "Event": {
+                        "Wort Kettle Temperature (F)": ":BOIL_TEMPERATURE:"
+                    },
+                    "State": "Wort Kettle Boiling" 
+                }   
+            ]       
         },
         "Wort Kettle Boiling": {
             "Entry Transition": {
@@ -235,30 +271,32 @@
                 "Wort Kettle Ball-Valve": 1,
                 "Wort Kettle Transfer Valve-Pump": 0,
                 "Wort Kettle Heater": 1,
-                "Boiling Time": "<:BOIL_TIME:"
+                "Boil Timer": ">0"
             },
-            "Exit Transition": {
-                "Wort Kettle Heater": 1
-            }        
+            "Transitions": [{
+                    "Event": {
+                        "Boil Timer": 0
+                    },
+                    "State": "Wort Kettle Boil Complete" 
+                }   
+            ]      
         },
         "Wort Kettle Boil Complete": {
-            "Entry Transition": {
-                "Boiling Time": 0,
-            },
             "State": { 
                 "Wort Kettle Ball-Valve": 1,
                 "Wort Kettle Transfer Valve-Pump": 0,
                 "Wort Kettle Heater": 0,
                 "Boiling Time": 0
             },
-            "Exit Transition": {
-                "Wort Kettle Transfer Valve-Pump": 1
-            }        
+            "Transitions": [{
+                    "Event": {
+                        "Wort Kettle Transfer Valve-Pump": 1
+                    },
+                    "State": "Transfer to Fermentation Vessel" 
+                }   
+            ]          
         },      
         "Transfer to Fermentation Vessel": {
-            "Entry Transition": {
-                "Wort Kettle Transfer Valve-Pump": 1
-            },
             "State": { 
                 "Wort Kettle Ball-Valve": 1,
                 "Wort Kettle Transfer Valve-Pump": 1,
@@ -266,9 +304,13 @@
                 "Boiling Time": 0,
                 "Fermentation Vessel Ball-Valve": 0
             },
-            "Exit Transition": {
-                "Fermentation Vessel Ball-Valve": 1
-            }        
+            "Transitions": [{
+                    "Event": {
+                        "Fermentation Vessel Ball-Valve": 1
+                    },
+                    "State": "Transfer to Fermentation Vessel Complete" 
+                }   
+            ]              
         }, 
         "Transfer to Fermentation Vessel Complete": {
             "Entry Transition": {
@@ -280,9 +322,13 @@
                 "Wort Kettle Heater": 0,
                 "Boiling Time": 0
             },
-            "Exit Transition": {
-                "Start Button": 0
-            }        
+            "Transitions": [{
+                    "Event": {
+                        "Start Button": 0
+                    },
+                    "State": "Idle" 
+                }   
+            ]       
         },      
         "device-map": {    
             "Start Button" :                "DI01",       
@@ -305,9 +351,9 @@
             ":BOIL_TIME:" : 60
         },
         "timers":[
-            "Mashing Timer",
-            "Sparging Timer",
-            "Boiling Timer"
+            "Mash Timer",
+            "Sparge Timer",
+            "Boil Timer"
         ]
     }
 }
