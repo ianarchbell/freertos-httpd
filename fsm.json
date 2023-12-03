@@ -18,7 +18,7 @@
             "Sparge Transfer",
             "Sparge Transfer Complete",
             "Wort Kettle Heating",
-            "Wort Boiling",
+            "Wort Kettle Boiling",
             "Wort Kettle Boil Complete",
             "Transfer to Fermentation Vessel",
             "Transfer to Fermentation Vessel Complete",
@@ -149,7 +149,7 @@
                 "Mash Tun Ball-Valve": 1,
                 "Mash Tun Transfer Valve-Pump": 0,
                 "Mash Tun Heater": 0,
-                "Mash Tun Temperature (F)": ":MASH_TEMPERATURE:",
+                "Mash Tun Temperature (F)": ":MASH_TEMPERATURE:"
             },
             "Transitions": [{
                     "Event": {
@@ -265,7 +265,7 @@
         },
         "Wort Kettle Boiling": {
             "Entry Transition": {
-                "Wort Kettle Temperature (F)": ":BOIL_TEMPERATURE:",
+                "Wort Kettle Temperature (F)": ":BOIL_TEMPERATURE:"
             },
             "State": { 
                 "Wort Kettle Ball-Valve": 1,

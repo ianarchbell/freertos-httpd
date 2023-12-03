@@ -50,7 +50,7 @@ endif()
 add_executable(idb
         idb_main.c fs_ext.c hw_config.c idb_router.c idb_ntp_client.c idb_data_logger.c
                 idb_hardware.c idb_post.c idb_network.c idb_websocket.c idb_http.c 
-                idb_state.c idb_runtime_stats.c idb_ping.c # router.cpp  testRoutes.cpp 
+                idb_state.c idb_runtime_stats.c idb_ping.c idb_fsm.c # router.cpp  testRoutes.cpp 
                 #idb_http_client.c 
                 #${PICO_LWIP_CONTRIB_PATH}/apps/ping/ping.c
                 ${PICO_LWIP_APP_PATH}/http/strcasestr.c
