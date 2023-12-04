@@ -24,9 +24,9 @@
 #define URI_BUFSIZE 128
 #define MAX_TOKEN_SIZE 128
 
-static void *current_connection;
+//static void *current_connection;
 static NameFunction* current_nameFunction;
-static void *valid_connection;
+//static void *valid_connection;
 static char* POST_uri = NULL;
 
 /**
@@ -55,21 +55,17 @@ httpd_post_begin(void *connection, const char *uri, const char *http_request,
     if (!POST_uri)
       panic("Unable to allocate POST_uri\n");
   }
-  if (current_nameFunction) {
-    if (current_connection != connection) {
-      current_connection = connection;
-      valid_connection = NULL;
-      /* default page is "login failed" */
+  else {   
+      /* default page is "success: false" json */
       snprintf(response_uri, response_uri_len, "/failure");
       /* e.g. for large uploads to slow flash over a fast connection, you should
          manually update the rx window. That way, a sender can only send a full
          tcp window at a time. If this is required, set 'post_aut_wnd' to 0.
          We do not need to throttle upload speed here, so: */
       *post_auto_wnd = 1;
-      return ERR_OK;
-    }
+      return ERR_VAL;
   }
-  return ERR_VAL;
+  return ERR_OK;
 }
 
 int url_decode(char* out, const char* in)
@@ -153,7 +149,7 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
   char* token_ptr1; 
 
   //TRACE_PRINTF("Handling POST receieve\n");
-  if (current_connection == connection && POST_uri != NULL) {
+  if (POST_uri != NULL) {
 
     // construct router route from parms
     strncpy(namedRoute, current_nameFunction->routeName, URI_BUFSIZE);
@@ -194,7 +190,7 @@ httpd_post_receive_data(void *connection, struct pbuf *p)
      }
   }
   else{
-    TRACE_PRINTF("POST: not in current connection or no uri\n");
+    TRACE_PRINTF("POST: no uri\n");
   }
   if(p)
     pbuf_free(p);
@@ -213,20 +209,18 @@ httpd_post_finished(void *connection, char *response_uri, u16_t response_uri_len
 
   /* default page is "JSON failure" */
  snprintf(response_uri, response_uri_len, "/failure");
- if (current_connection == connection) {
-   if (POST_uri) {
-      TRACE_PRINTF("POSTing route uri: %s\n", POST_uri);
-      NameFunction* routeFunction = isRoute(POST_uri, HTTP_POST);
-      if(routeFunction){
-        char buffer[128];
-        route(routeFunction, buffer, sizeof buffer, POST_uri);
-        snprintf(response_uri, response_uri_len,"/success");
-     }
-      vPortFree(POST_uri);
-      POST_uri = NULL;
-   }
- }
-  current_connection = NULL;
-  valid_connection = NULL;
+  if (POST_uri) {
+    TRACE_PRINTF("POSTing route uri: %s\n", POST_uri);
+    NameFunction* routeFunction = isRoute(POST_uri, HTTP_POST);
+    if(routeFunction){
+      char buffer[128];
+      route(routeFunction, buffer, sizeof buffer, POST_uri);
+      snprintf(response_uri, response_uri_len,"/success");
+    }
+    vPortFree(POST_uri);
+    POST_uri = NULL;
+  }
 }
+
+
 

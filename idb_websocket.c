@@ -89,8 +89,9 @@ void keepalive(TimerHandle_t xTimer){
 
     wsMessage wsMsg = { 0, KEEPALIVE_EVENT, msg};
     if(sendWSMessage(wsMsg)){
-        TRACE_PRINTF("Keepalive message queued: %d, timer handle %d\n", keepalive, xTimer);
+         TRACE_PRINTF("Keepalive message queued: %d, timer handle %d, heap: %d\n", keepalive, xTimer , heap);
     }
+    
 }
 
 void create_keepalive_timer(bool start) {
@@ -114,6 +115,7 @@ void create_keepalive_timer(bool start) {
     else{
         if (keepalive_timer != NULL){
             xTimerStop(keepalive_timer, 0);
+            xTimerDelete(keepalive_timer, 0);
             keepalive_timer = NULL;
         }
     }
