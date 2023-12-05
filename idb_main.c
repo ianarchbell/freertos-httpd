@@ -248,7 +248,7 @@ void main_task(__unused void *params) {
 
     state_init();
 
-    fsm_init();
+    //fsm_init();
 
     print_date();
 
