@@ -135,6 +135,7 @@ void digital_input_callback(uint gpio, uint32_t event) {
     // need to check we haven't already got something on queue - as there is only one buffer TODO ***
 
     wsMessage wsMsg = { 0, GPIO_EVENT, messageBuff};
+    sendMessageFromISR(wsMsg);
     if (sendWSMessageFromISR(wsMsg)){
         TRACE_PRINTF("Queueing wsMessage: %d, %d for descriptor %s, event %d\n", wsMsg.ulMessageID, wsMsg.ulEventId, descriptor, event);
     }
